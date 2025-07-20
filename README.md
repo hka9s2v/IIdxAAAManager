@@ -25,12 +25,17 @@ IIDXのBPI（Beat Point Index）管理システム。楽曲ごとのスコアと
 npm install
 ```
 
-### 2. データベースの設定
+### 2. 環境変数の設定
 
-PostgreSQLデータベースを用意し、`.env`ファイルを編集してデータベース接続文字列を設定します：
+`.env.local`ファイルを作成し、以下の環境変数を設定します：
 
 ```env
+# データベース接続
 DATABASE_URL="postgresql://username:password@localhost:5432/iidx_bpi_manager?schema=public"
+
+# NextAuth.js設定
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-super-secret-jwt-secret-at-least-32-characters-long"
 ```
 
 ### 3. データベースの初期化
@@ -58,16 +63,14 @@ npm run dev
 
 ### テーブル構成
 
-- **users**: ユーザー情報（将来の認証機能用）
-- **songs**: 楽曲マスターデータ
-- **bpi_data**: 楽曲のBPI基準スコア情報
+- **users**: ユーザー情報（認証機能）
+- **songs**: 楽曲マスターデータ（score89フィールド含む）
 - **user_scores**: ユーザーの楽曲スコア・グレード
-- **user_sessions**: セッション管理（将来の認証機能用）
 
 ### 主要なリレーション
 
 ```
-User (1) -> (N) UserScore (N) -> (1) Song (1) -> (1) BpiData
+User (1) -> (N) UserScore (N) -> (1) Song
 ```
 
 ## API エンドポイント
@@ -82,6 +85,10 @@ User (1) -> (N) UserScore (N) -> (1) Song (1) -> (1) BpiData
 - `GET /api/user-scores` - ユーザースコア一覧取得
 - `POST /api/user-scores` - ユーザースコア登録・更新
 - `DELETE /api/user-scores?songId={songId}` - ユーザースコア削除
+
+### 認証関連
+
+- `POST /api/auth/register` - ユーザー登録
 
 ### その他
 
@@ -110,15 +117,23 @@ npm run db:seed      # シードデータ投入
 npm run db:studio    # Prisma Studio起動
 ```
 
+## デプロイ
+
+### Vercel + NeonDB
+
+本番環境用の環境変数をVercelで設定：
+
+```env
+# Vercel Environment Variables
+DATABASE_URL="postgresql://username:password@host.neon.tech/dbname?sslmode=require"
+NEXTAUTH_SECRET="production-secret-key-32-characters-long"
+# NEXTAUTH_URL は Vercel が自動設定
+```
+
 ## 今後の実装予定
 
-- [ ] ユーザー認証機能（NextAuth.js）
-- [ ] 複数ユーザー対応
 - [ ] スコア履歴管理
 - [ ] ランプ（クリア状況）管理
 - [ ] 統計・分析機能
 - [ ] インポート・エクスポート機能
-
-## 注意事項
-
-現在は認証機能が未実装のため、仮のユーザーID（1）でスコアが管理されています。認証機能実装後は適切なユーザー分離が行われます。
+- [ ] PWA対応
