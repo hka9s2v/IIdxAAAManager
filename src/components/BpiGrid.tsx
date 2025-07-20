@@ -1,17 +1,28 @@
 'use client';
 
-import { Song, UserScore } from '@/hooks/useBpiData';
+import React from 'react';
+import { Song, UserScore } from '@/hooks/useBpiDataDB';
 
 interface BpiGridProps {
   song: Song;
   userScores: Record<number, UserScore>;
 }
 
+interface BpiRange {
+  min: number;
+  max: number;
+  grade: string;
+  color: string;
+  textColor: string;
+  bgClass: string;
+  icon: string;
+}
+
 export function BpiGrid({ song, userScores }: BpiGridProps) {
   const userScore = userScores[song.id];
 
   // BPI ranges with corresponding grades and enhanced styling
-  const bpiRanges = [
+  const bpiRanges: BpiRange[] = [
     { 
       min: 100, max: Infinity, grade: 'MAX', 
       color: 'grade-max', textColor: 'text-white',
@@ -73,21 +84,21 @@ export function BpiGrid({ song, userScores }: BpiGridProps) {
   
   // Get reference BPI values from song data
   const referenceBpis = [
-    { value: 100, label: 'WR' },
-    { value: 0, label: '94%' },
-    { value: song.score89 || 0, label: '89%' },
-    { value: 0, label: '83%' },
-    { value: 0, label: 'AVG' },
+    { value: song.wr || 0, label: 'WR' },
+    { value: song.bpiData?.score17_18 || 0, label: '17/18' },
+    { value: song.bpiData?.score8_9 || 0, label: '89%' },
+    { value: song.bpiData?.score15_18 || 0, label: '15/18' },
+    { value: song.avg || 0, label: 'AVG' },
   ];
 
-  const getBpiCellState = (range: any) => {
+  const getBpiCellState = (range: BpiRange) => {
     if (currentUserBpi === null) return 'empty';
     if (currentUserBpi >= range.min && currentUserBpi <= range.max) return 'achieved';
     if (currentUserBpi > range.max) return 'exceeded';
     return 'not-achieved';
   };
 
-  const getCellStyle = (range: any) => {
+  const getCellStyle = (range: BpiRange) => {
     const state = getBpiCellState(range);
     
     switch (state) {

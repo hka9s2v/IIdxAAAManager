@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, email, password } = await request.json();
+    const { username, email, password }: { username: string; email?: string; password: string } = await request.json();
 
     // バリデーション
     if (!username || !password) {
@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 既存ユーザーチェック
-    const whereConditions = [{ username: username }];
+    const whereConditions: Array<{ username?: string; email?: string }> = [{ username }];
     if (email) {
-      whereConditions.push({ email: email });
+      whereConditions.push({ email });
     }
 
     const existingUser = await prisma.user.findFirst({
@@ -55,13 +55,14 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         username,
-        email: email || `${username}@example.com`, // メールアドレスが空の場合のデフォルト値
+        email: email || `${username}@temp.local`, // emailが必須なのでデフォルト値を設定
         passwordHash: hashedPassword,
         displayName: username,
       },
     });
 
     // レスポンス用にパスワードハッシュを除外
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...userWithoutPassword } = user;
 
     return NextResponse.json(

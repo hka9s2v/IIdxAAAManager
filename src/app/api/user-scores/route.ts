@@ -14,23 +14,20 @@ export async function GET() {
 
     const userScores = await prisma.userScore.findMany({
       where: { userId },
-      include: {
-        song: true,
-      },
+      include: { song: true }
     });
 
-    // フロントエンド用の形式に変換
-    const formattedScores: Record<number, any> = {};
-    userScores.forEach(score => {
-      formattedScores[score.songId] = {
-        grade: score.grade,
-        score: score.score,
-        bpi: score.bpi ? parseFloat(score.bpi.toString()) : null,
-        date: score.achievedAt.toISOString(),
+    const scoresMap: Record<string, unknown> = {};
+    userScores.forEach((userScore) => {
+      scoresMap[userScore.songId] = {
+        grade: userScore.grade,
+        score: userScore.score,
+        bpi: userScore.bpi ? parseFloat(userScore.bpi.toString()) : null,
+        date: userScore.achievedAt.toISOString(),
       };
     });
 
-    return NextResponse.json(formattedScores);
+    return NextResponse.json(scoresMap);
   } catch (error) {
     console.error('Failed to fetch user scores:', error);
     return NextResponse.json(

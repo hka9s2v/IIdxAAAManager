@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Song, UserScore } from '@/hooks/useBpiData';
+import { Song, UserScore } from '@/hooks/useBpiDataDB';
+import { calculateAaaScore } from '@/utils/bpiCalculations';
 
 interface ScoreModalProps {
   song: Song;
@@ -117,7 +118,7 @@ export function ScoreModal({ song, onClose, updateUserScore, calculateBPI, curre
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>WR: {song.wr} (BPI: 100)</div>
                 <div>AVG: {song.avg} (BPI: 0)</div>
-                <div>89%: {Math.round(song.notes * 2 * 0.889)} (BPI: {song.score89 || 'N/A'})</div>
+                <div>89%: {calculateAaaScore(song)} (BPI: N/A)</div>
                 <div>83%: {Math.round(song.notes * 2 * 0.833)} (BPI: N/A)</div>
               </div>
             </div>

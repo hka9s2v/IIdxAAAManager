@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Song, UserScore } from '@/hooks/useBpiDataDB';
 import { SongCard } from './SongCard';
+import { Song, UserScore } from '@/hooks/useBpiDataDB';
+import { calculateAaaBpi } from '@/utils/bpiCalculations';
 
 interface SongGridProps {
   songs: Song[];
   userScores: Record<number, UserScore>;
   loading: boolean;
-  updateUserScore: (songId: number, userScore: UserScore) => void;
+  updateUserScore: (songId: number, scoreData: Record<string, unknown>) => void;
   removeUserScore: (songId: number) => void;
 }
 
@@ -25,6 +26,16 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
     setCollapsedSections(newCollapsed);
   };
 
+  // AAA BPIを計算するヘルパー関数
+  const getAaaBpi = (song: Song): number => {
+    if (!song.notes || !song.avg || !song.wr) return -999;
+    return calculateAaaBpi({
+      notes: song.notes,
+      avg: song.avg,
+      wr: song.wr,
+      coef: song.coef
+    });
+  };
 
   if (loading) {
     return (
@@ -56,49 +67,95 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
     );
   }
 
-  // BPI範囲でグループ化
-  const groupSongsByBpiRange = (songs: Song[]) => {
-    const groups: { [key: string]: Song[] } = {};
+  // レベル別、AAA BPI範囲でグループ化
+  const groupSongsByLevelAndBpiRange = (songs: Song[]) => {
+    const levelGroups: { [key: string]: { [key: string]: Song[] } } = {};
     
     songs.forEach(song => {
-      const bpi = song.score89 || 0;
+      const level = `★${song.level}`;
+      const bpi = getAaaBpi(song);
       let rangeKey: string;
       
-      if (bpi <= -100) {
-        rangeKey = '-100以下';
+      if (bpi === -999) {
+        rangeKey = 'データ不足';
+      } else if (bpi <= -50) {
+        rangeKey = '-50以下';
+      } else if (bpi >= 100) {
+        rangeKey = '100以上';
       } else {
-        const rangeStart = Math.floor(bpi / 10) * 10;
+        // 負の数も正しく処理するように修正
+        let rangeStart: number;
+        if (bpi >= 0) {
+          rangeStart = Math.floor(bpi / 10) * 10;
+        } else {
+          // 負の数の場合は特別な処理
+          rangeStart = Math.ceil((bpi - 9) / 10) * 10;
+        }
         const rangeEnd = rangeStart + 9;
-        rangeKey = `${rangeStart}-${rangeEnd}`;
+        rangeKey = `${rangeStart}~${rangeEnd}`;
       }
       
-      if (!groups[rangeKey]) {
-        groups[rangeKey] = [];
+      if (!levelGroups[level]) {
+        levelGroups[level] = {};
       }
-      groups[rangeKey].push(song);
+      if (!levelGroups[level][rangeKey]) {
+        levelGroups[level][rangeKey] = [];
+      }
+      levelGroups[level][rangeKey].push(song);
     });
     
-    return groups;
+    // 各グループ内でAAA BPI降順ソート
+    Object.keys(levelGroups).forEach(level => {
+      Object.keys(levelGroups[level]).forEach(range => {
+        levelGroups[level][range].sort((a, b) => getAaaBpi(b) - getAaaBpi(a));
+      });
+    });
+    
+    return levelGroups;
   };
 
-  const groupedSongs = groupSongsByBpiRange(songs);
+  const levelGroupedSongs = groupSongsByLevelAndBpiRange(songs);
   
-  // ソート順: -100以下を最後に、その他は数値順（降順）
-  const sortedRanges = Object.keys(groupedSongs).sort((a, b) => {
-    if (a === '-100以下') return 1;
-    if (b === '-100以下') return -1;
-    
-    const aStart = parseInt(a.split('-')[0]);
-    const bStart = parseInt(b.split('-')[0]);
-    return bStart - aStart; // 降順
+  // レベル順（★12 -> ★11）、BPI範囲順（100以上 -> 90-99 -> ... -> -50以下）
+  const sortedLevels = Object.keys(levelGroupedSongs).sort((a, b) => {
+    const aLevel = parseInt(a.replace('★', ''));
+    const bLevel = parseInt(b.replace('★', ''));
+    return bLevel - aLevel; // 12 -> 11の順
   });
+
+  const sortBpiRanges = (ranges: string[]): string[] => {
+    return ranges.sort((a, b) => {
+      // 特殊ケースの処理
+      if (a === 'データ不足') return 1;
+      if (b === 'データ不足') return -1;
+      if (a === '100以上') return -1;
+      if (b === '100以上') return 1;
+      if (a === '-50以下') return 1;
+      if (b === '-50以下') return -1;
+      
+      // 通常の範囲の処理（~で分割）
+      const aStart = parseInt(a.split('~')[0]);
+      const bStart = parseInt(b.split('~')[0]);
+      
+      // 負の数も含めて正しくソート（降順：高いBPIから低いBPIへ）
+      return bStart - aStart;
+    });
+  };
 
   const expandAll = () => {
     setCollapsedSections(new Set());
   };
 
   const collapseAll = () => {
-    setCollapsedSections(new Set(sortedRanges));
+    const allSections: string[] = [];
+    sortedLevels.forEach(level => {
+      allSections.push(level);
+      const ranges = Object.keys(levelGroupedSongs[level]);
+      ranges.forEach(range => {
+        allSections.push(`${level}-${range}`);
+      });
+    });
+    setCollapsedSections(new Set(allSections));
   };
 
   return (
@@ -118,45 +175,77 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
           全て折りたたみ
         </button>
       </div>
-      {sortedRanges.map(range => {
-        const isCollapsed = collapsedSections.has(range);
-        const songCount = groupedSongs[range].length;
+      
+      {sortedLevels.map(level => {
+        const isLevelCollapsed = collapsedSections.has(level);
+        const bpiRanges = Object.keys(levelGroupedSongs[level]);
+        const sortedRanges = sortBpiRanges(bpiRanges);
+        const totalSongsInLevel = sortedRanges.reduce((sum, range) => sum + levelGroupedSongs[level][range].length, 0);
         
         return (
-          <div key={range} className="mb-6">
-            {/* BPI Range Header */}
-            <div className="mb-2">
+          <div key={level} className="mb-8">
+            {/* Level Header */}
+            <div className="mb-4">
               <button
-                onClick={() => toggleSection(range)}
-                className="w-full text-left hover:bg-gray-100 rounded p-1 transition-colors"
+                onClick={() => toggleSection(level)}
+                className="w-full text-left hover:bg-gray-100 rounded p-2 transition-colors"
               >
-                <h2 className="text-sm font-medium text-blue-600 border-b border-blue-200 pb-1 flex items-center justify-between">
-                  <span>BPI {range}</span>
+                <h1 className="text-lg font-bold text-purple-600 border-b-2 border-purple-200 pb-2 flex items-center justify-between">
+                  <span>{level}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600">({songCount}曲)</span>
-                    <span className="text-blue-600 text-sm">
-                      {isCollapsed ? '+' : '−'}
+                    <span className="text-sm text-gray-600">({totalSongsInLevel}曲)</span>
+                    <span className="text-purple-600 text-lg">
+                      {isLevelCollapsed ? '+' : '−'}
                     </span>
                   </div>
-                </h2>
+                </h1>
               </button>
             </div>
             
-            {/* Songs Grid */}
-            {!isCollapsed && (
-              <div className="grid grid-cols-5 gap-0">
-                {groupedSongs[range].map((song) => (
-                  <div key={`${song.id}-${userScores[song.id]?.date || 'no-score'}`} className="h-full">
-                    <SongCard 
-                      song={song} 
-                      userScores={userScores}
-                      updateUserScore={updateUserScore}
-                      removeUserScore={removeUserScore}
-                    />
+            {/* BPI Range Groups within Level */}
+            {!isLevelCollapsed && sortedRanges.map(range => {
+              const sectionKey = `${level}-${range}`;
+              const isRangeCollapsed = collapsedSections.has(sectionKey);
+              const songCount = levelGroupedSongs[level][range].length;
+              
+              return (
+                <div key={sectionKey} className="mb-6 ml-4">
+                  {/* AAA BPI Range Header */}
+                  <div className="mb-2">
+                    <button
+                      onClick={() => toggleSection(sectionKey)}
+                      className="w-full text-left hover:bg-gray-100 rounded p-1 transition-colors"
+                    >
+                      <h2 className="text-sm font-medium text-blue-600 border-b border-blue-200 pb-1 flex items-center justify-between">
+                        <span>AAA BPI {range}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600">({songCount}曲)</span>
+                          <span className="text-blue-600 text-sm">
+                            {isRangeCollapsed ? '+' : '−'}
+                          </span>
+                        </div>
+                      </h2>
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                  
+                  {/* Songs Grid */}
+                  {!isRangeCollapsed && (
+                    <div className="grid grid-cols-5 gap-0">
+                      {levelGroupedSongs[level][range].map((song) => (
+                        <div key={`${song.id}-${userScores[song.id]?.date || 'no-score'}`} className="h-full">
+                          <SongCard 
+                            song={song} 
+                            userScores={userScores}
+                            updateUserScore={updateUserScore}
+                            removeUserScore={removeUserScore}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })}

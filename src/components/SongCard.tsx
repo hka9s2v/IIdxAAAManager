@@ -1,38 +1,33 @@
 'use client';
 
 import { Song, UserScore } from '@/hooks/useBpiDataDB';
+import { calculateAaaBpi } from '@/utils/bpiCalculations';
 
 interface SongCardProps {
   song: Song;
   userScores: Record<number, UserScore>;
-  updateUserScore: (songId: number, userScore: UserScore) => void;
+  updateUserScore: (songId: number, scoreData: Record<string, unknown>) => void;
   removeUserScore: (songId: number) => void;
 }
 
 export function SongCard({ song, userScores, updateUserScore, removeUserScore }: SongCardProps) {
   const userScore = userScores[song.id];
   
-  // 89%スコアを表示する関数（鳥難易度）
-  const get89Score = (): number | null => {
-    return song.score89 || null;
+  const getAaaBpi = (): number | null => {
+    if (!song.notes || !song.avg || !song.wr) return null;
+    return calculateAaaBpi({
+      notes: song.notes,
+      avg: song.avg,
+      wr: song.wr,
+      coef: song.coef // 譜面係数pを追加
+    });
   };
   
   const currentUserBpi = userScore?.bpi || null;
-  const score89Value = get89Score();
-  
-  // Debug: Show userScore info
-  console.log(`SongCard ${song.id} (${song.title}):`, { 
-    hasScore: !!userScore, 
-    userScore: userScore,
-    currentUserBpi: currentUserBpi,
-    score89Value: score89Value,
-    song89Score: song.score89,
-    songWR: song.wr
-  });
+  const aaaBpiValue = getAaaBpi();
 
   const handleGradeChange = (newGrade: string) => {
     if (newGrade === '') {
-      // グレードを初期化（削除）
       removeUserScore(song.id);
       return;
     }
@@ -72,14 +67,6 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
     }
   };
 
-  const getLevelColor = (level: number) => {
-    if (level >= 12) return 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg';
-    if (level >= 11) return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg';
-    if (level >= 10) return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg';
-    if (level >= 9) return 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg';
-    return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg';
-  };
-
   const getCardStyle = () => {
     return 'bg-white border-gray-100';
   };
@@ -114,9 +101,7 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
   return (
     <>
       <div className={`border hover:bg-gray-50 transition-all duration-200 ${getCardStyle()} flex flex-col h-full relative`}>
-        {/* Header */}
         <div className={`p-1.5 md:p-2 ${getGradeBackgroundStyle()} flex-1`}>
-          {/* Desktop表示 */}
           <div className="hidden md:block">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-gray-900 font-medium text-sm leading-tight line-clamp-1 flex-1 mr-2">
@@ -129,13 +114,14 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
             <div className="flex justify-between items-center text-xs text-gray-600">
               <div>Notes: {song.notes} | BPM: {song.bpm}</div>
               <div className="bg-blue-100 px-1.5 py-0.5">
-                <span className="text-blue-700">鳥難度: </span>
-                <span className="text-blue-800 font-bold">{score89Value !== null ? score89Value.toLocaleString() : 'N/A'}</span>
+                <span className="text-blue-700">AAA BPI: </span>
+                <span className="text-blue-800 font-bold">
+                  {aaaBpiValue !== null && aaaBpiValue !== -999 ? aaaBpiValue.toFixed(1) : 'N/A'}
+                </span>
               </div>
             </div>
           </div>
           
-          {/* Mobile表示 */}
           <div className="md:hidden relative z-10">
             <h3 className="text-gray-900 font-medium text-xs leading-tight line-clamp-3">
               {song.title}
@@ -143,12 +129,12 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
           </div>
         </div>
         
-        {/* 鳥難度ボックス - スマホ版のみ、カード全体の右下に固定 */}
         <div className="md:hidden absolute bottom-8 right-0.5 bg-blue-100 bg-opacity-30 px-0.5 py-0.5 rounded text-xs z-20">
-          <span className="text-blue-800 font-bold">{score89Value !== null ? score89Value.toLocaleString() : 'N/A'}</span>
+          <span className="text-blue-800 font-bold">
+            {aaaBpiValue !== null && aaaBpiValue !== -999 ? aaaBpiValue.toFixed(1) : 'N/A'}
+          </span>
         </div>
 
-        {/* Grade Selection */}
         <div className={`p-0.5 md:p-1 flex justify-center ${getGradeBackgroundStyle()}`}>
           <select
             value={userScore?.grade || ''}

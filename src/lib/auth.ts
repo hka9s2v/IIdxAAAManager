@@ -55,24 +55,28 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id;
-        token.username = user.username;
+        // user.username の型安全性を確保
+        if ('username' in user) {
+          token.username = (user as { username: string }).username;
+        }
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.username = token.username;
+    session: async ({ session, token }) => {
+      session.user.id = token.id as string;
+      // token.username の型安全性を確保
+      if ('username' in session.user && 'username' in token) {
+        (session.user as { username: string }).username = token.username as string;
       }
       return session;
     },
   },
   pages: {
     signIn: "/auth/login",
-    signUp: "/auth/register",
+    newUser: "/auth/register",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
