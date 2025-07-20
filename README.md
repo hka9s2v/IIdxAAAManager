@@ -1,6 +1,6 @@
-# IIDX BPI Manager
+# IIDX AAA Manager
 
-IIDXのBPI（Beat Point Index）管理システム。楽曲ごとのスコアとグレードを管理し、BPI値による目標設定をサポートします。
+IIDXのグレード管理システム。楽曲ごとのスコアとグレードを管理し、BPI値による目標設定をサポートします。
 
 ## 機能
 
