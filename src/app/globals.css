@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+/* Custom IIDX theme */
+:root {
+  --color-iidx-cyan: #00bcd4;
+  --color-iidx-dark: #0a0e1a;
+  --color-iidx-gray: #1a1f2e;
+  --background: #0a0e1a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1f2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Custom animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Grade-based animations */
+@keyframes grade-glow-max {
+  0%, 100% { box-shadow: 0 0 8px rgba(236, 72, 153, 0.6); }
+  50% { box-shadow: 0 0 25px rgba(236, 72, 153, 0.9); }
+}
+
+@keyframes grade-glow-aaa {
+  0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+  50% { box-shadow: 0 0 25px rgba(251, 191, 36, 0.9); }
+}
+
+@keyframes grade-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.grade-max {
+  background: linear-gradient(135deg, #ec4899, #f97316, #ec4899);
+  background-size: 200% 200%;
+  animation: grade-glow-max 2s ease-in-out infinite, grade-shimmer 3s linear infinite;
+}
+
+.grade-aaa {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #fbbf24);
+  background-size: 200% 200%;
+  animation: grade-glow-aaa 2s ease-in-out infinite, grade-shimmer 3s linear infinite;
+}
+
+/* Grade cell hover effects */
+.grade-cell {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.grade-cell:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.grade-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.grade-cell:hover::before {
+  left: 100%;
+}
+
+/* Grade-specific styling */
+.grade-achieved {
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.grade-exceeded {
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+}
+
+/* Song card grade indicators */
+.song-card-max {
+  border: 2px solid #ec4899;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(249, 115, 22, 0.1));
+}
+
+.song-card-aaa {
+  border: 2px solid #fbbf24;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+}
+
+.song-card-aa {
+  border: 2px solid #f97316;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1));
+}
+
+.song-card-a {
+  border: 2px solid #3b82f6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(29, 78, 216, 0.1));
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom gray-750 color */
+.bg-gray-750 {
+  background-color: #374151;
+}
+
+.hover\:bg-gray-750:hover {
+  background-color: #374151;
+}
+
+/* Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
