@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
 import { Song, UserScore } from '@/hooks/useBpiDataDB';
 
 interface FilterBarProps {
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: { level: string; search: string }) => void;
   sortAscending: boolean;
   onToggleSort: () => void;
   songs: Song[];
@@ -13,10 +12,7 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, userScores }: FilterBarProps) {
-  const [filters, setFilters] = useState({
-    level: '11',
-    search: ''
-  });
+  const [filters, setFilters] = useState({ level: '', search: '' });
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -29,10 +25,9 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
     onFilterChange(filters);
   }, []);
 
-
-  // グレード分布の計算（同レベルの全曲に対する比率）
+  // 統計データの計算
   const totalSongs = songs.length;
-  const playedSongs = songs.filter(song => userScores[song.id]).length;
+  const totalScores = Object.keys(userScores).length;
 
   const gradeDistribution = songs.reduce((acc, song) => {
     const userScore = userScores[song.id];
@@ -52,6 +47,9 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
     'E': 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg',
     'F': 'bg-gradient-to-r from-gray-500 to-gray-700 text-white shadow-lg',
   };
+
+  // 統計情報をコンソールに出力（開発用）
+  console.log('Total songs:', totalSongs, 'Total scores:', totalScores);
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-200">
@@ -132,9 +130,9 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
         </div>
 
         {/* Sort Order Toggle */}
-        <div className="w-28">
+        <div className="w-32">
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            並び順
+            AAA BPI順
           </label>
           <button
             onClick={onToggleSort}
@@ -146,7 +144,6 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
             </span>
           </button>
         </div>
-
       </div>
     </div>
   );

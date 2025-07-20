@@ -10,13 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ユーザーモデル（将来的なユーザー登録機能用）
+// ユーザーモデル
 model User {
   id           Int      @id @default(autoincrement())
   username     String   @unique @db.VarChar(50)
-  email        String   @unique @db.VarChar(255)
+  email        String?  @unique @db.VarChar(255)
   passwordHash String   @map("password_hash") @db.VarChar(255)
   displayName  String?  @map("display_name") @db.VarChar(100)
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -29,15 +30,15 @@ model User {
 
 // 楽曲マスターモデル
 model Song {
-  id         Int     @id @default(autoincrement())
-  title      String  @db.VarChar(255)
-  difficulty String  @db.VarChar(20) // HYPER, ANOTHER, LEGGENDARIA
+  id         Int      @id @default(autoincrement())
+  title      String   @db.VarChar(255)
+  difficulty String   @db.VarChar(20) // HYPER, ANOTHER, LEGGENDARIA
   level      Int
   notes      Int?
-  bpm        String? @db.VarChar(50) // "120-180" のような範囲も考慮
-  worldRecord Int?   @map("world_record")
-  // BPI計算用の基準スコア（89%スコア）
-  score89    Int?    @map("score8_9") // 89%目標スコア（鳥難度）
+  bpm        String?  @db.VarChar(50)
+  wr         Int?     @map("world_record") // World Record score
+  avg        Int?     @map("average_score") // Average score
+  coef       Decimal? @db.Decimal(6, 4) // 譜面係数p
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
@@ -55,7 +56,7 @@ model UserScore {
   songId     Int      @map("song_id")
   grade      String   @db.VarChar(10) // AAA, AA, A, B, C, D, E, F
   score      Int?
-  bpi        Decimal? @db.Decimal(5, 2) // BPI値（小数点以下2桁）
+  bpi        Decimal? @db.Decimal(7, 3) // BPI値（小数点以下3桁）
   clearLamp  String?  @map("clear_lamp") @db.VarChar(20) // EASY, NORMAL, HARD, EX-HARD, FULL-COMBO, PERFECT
   playCount  Int      @default(1) @map("play_count")
   bestScore  Int?     @map("best_score")
@@ -70,4 +71,3 @@ model UserScore {
   @@unique([userId, songId])
   @@map("user_scores")
 }
-

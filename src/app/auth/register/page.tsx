@@ -52,7 +52,8 @@ export default function RegisterPage() {
         router.refresh();
       }
     } catch (err) {
-      setError('ユーザー登録に失敗しました');
+      console.error('Registration error:', err);
+      setError('登録に失敗しました');
     } finally {
       setLoading(false);
     }

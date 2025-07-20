@@ -17,13 +17,10 @@ export function AuthButton() {
 
   if (session) {
     return (
-      <div className="flex items-center space-x-4">
-        <span className="text-sm text-gray-700">
-          こんにちは、{session.user.name}さん
-        </span>
+      <div className="flex items-center space-x-2">
         <button
-          onClick={() => signOut({ callbackUrl: '/auth/login' })}
-          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
+          onClick={() => signOut()}
+          className="text-red-600 hover:text-red-700 transition-colors text-sm"
         >
           ログアウト
         </button>

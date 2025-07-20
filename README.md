@@ -1,124 +1,133 @@
 # IIDX BPI Manager
 
-IIDXのBPI（Beat Point Index）管理システム。楽曲ごとのスコアとグレードを管理し、BPI値による目標設定をサポートします。
+Beatmania IIDX の BPI を管理するWebアプリケーション
 
-## 機能
+## 🚀 技術スタック
 
-- 楽曲データの表示・管理
-- ユーザースコア（グレード）の登録・更新
-- BPI値による並び替え・フィルタリング
-- レベル別フィルタリング（★11、★12）
-- グレード分布の可視化
-
-## 技術スタック
-
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15, React 19, TailwindCSS
 - **Backend**: Next.js API Routes
 - **Database**: PostgreSQL with Prisma ORM
-- **認証**: 将来実装予定（NextAuth.js）
+- **Authentication**: NextAuth.js
+- **File Storage**: AWS S3 (アバター画像)
 
-## セットアップ
+## 📋 前提条件
 
-### 1. 依存関係のインストール
+- Node.js 18+ 
+- PostgreSQL 12+
+- npm または yarn
 
-```bash
-npm install
-```
+## 🛠️ セットアップ
 
-### 2. データベースの設定
+### 1. 環境変数の設定
 
-PostgreSQLデータベースを用意し、`.env`ファイルを編集してデータベース接続文字列を設定します：
-
-```env
-DATABASE_URL="postgresql://username:password@localhost:5432/iidx_bpi_manager?schema=public"
-```
-
-### 3. データベースの初期化
+`.env.local` ファイルを作成して以下の環境変数を設定してください：
 
 ```bash
-# Prismaクライアントの生成
-npm run db:generate
+# データベース接続URL（ローカル開発用）
+DATABASE_URL="postgresql://username:password@localhost:5432/iidx_manager?schema=public"
 
-# データベーススキーマの作成
-npm run db:push
+# NextAuth.js用の設定
+NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_URL="http://localhost:3000"
 
-# 初期データの投入
-npm run db:seed
+# AWS S3設定（アバター画像アップロード用）
+AWS_ACCESS_KEY_ID="your-aws-access-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-key" 
+AWS_REGION="ap-northeast-1"
+AWS_S3_BUCKET_NAME="your-bucket-name"
 ```
 
-### 4. 開発サーバーの起動
+⚠️ **重要**: DATABASE_URLが設定されていない場合、データベース接続エラーが発生します。
 
+1. **リポジトリのクローン**
+   ```bash
+   git clone <repository-url>
+   cd IIdxAAAManager
+   ```
+
+2. **依存関係のインストール**
+   ```bash
+   npm install
+   ```
+
+3. **環境変数の設定**
+   `.env`ファイルを作成:
+   ```env
+   # Database
+   DATABASE_URL="postgresql://username:password@localhost:5432/iidx_bpi_manager"
+   
+   # NextAuth.js
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-secret-key-here"
+   
+   # AWS S3 (オプション - アバターアップロード用)
+   AWS_ACCESS_KEY_ID="your-aws-access-key"
+   AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+   AWS_REGION="ap-northeast-1"
+   AWS_S3_BUCKET="your-s3-bucket-name"
+   ```
+
+4. **データベースのセットアップ**
+   ```bash
+   # PostgreSQLデータベースを作成
+   createdb iidx_bpi_manager
+   
+   # Prismaマイグレーション実行
+   npx prisma migrate dev
+   
+   # 初期データ投入（オプション）
+   npm run db:seed
+   ```
+
+## 🏃‍♂️ 起動方法
+
+### 開発環境
 ```bash
 npm run dev
 ```
+http://localhost:3000 でアクセス可能
 
-ブラウザで [http://localhost:3000](http://localhost:3000) を開いてアプリケーションにアクセスできます。
-
-## データベーススキーマ
-
-### テーブル構成
-
-- **users**: ユーザー情報（将来の認証機能用）
-- **songs**: 楽曲マスターデータ
-- **bpi_data**: 楽曲のBPI基準スコア情報
-- **user_scores**: ユーザーの楽曲スコア・グレード
-- **user_sessions**: セッション管理（将来の認証機能用）
-
-### 主要なリレーション
-
-```
-User (1) -> (N) UserScore (N) -> (1) Song (1) -> (1) BpiData
-```
-
-## API エンドポイント
-
-### 楽曲関連
-
-- `GET /api/songs?level={level}` - 楽曲一覧取得
-- `POST /api/songs` - 楽曲データの一括インポート
-
-### ユーザースコア関連
-
-- `GET /api/user-scores` - ユーザースコア一覧取得
-- `POST /api/user-scores` - ユーザースコア登録・更新
-- `DELETE /api/user-scores?songId={songId}` - ユーザースコア削除
-
-### その他
-
-- `GET /api/bpi-data` - 外部BPIデータ取得（マスターデータ更新用）
-
-## 開発用コマンド
-
+### 本番環境
 ```bash
-# 開発サーバー起動
-npm run dev
-
-# ビルド
 npm run build
-
-# プロダクション起動
 npm start
-
-# リント
-npm run lint
-
-# データベース関連
-npm run db:generate  # Prismaクライアント生成
-npm run db:push      # スキーマをデータベースに反映
-npm run db:migrate   # マイグレーション実行
-npm run db:seed      # シードデータ投入
-npm run db:studio    # Prisma Studio起動
 ```
 
-## 今後の実装予定
+## 📝 利用可能なスクリプト
 
-- [ ] ユーザー認証機能（NextAuth.js）
-- [ ] 複数ユーザー対応
-- [ ] スコア履歴管理
-- [ ] ランプ（クリア状況）管理
-- [ ] 統計・分析機能
-- [ ] インポート・エクスポート機能
+- `npm run dev` - 開発サーバー起動
+- `npm run build` - プロダクションビルド
+- `npm start` - プロダクションサーバー起動
+- `npm run lint` - ESLintによるコード検査
+- `npm run db:generate` - Prisma Client生成
+- `npm run db:push` - スキーマをデータベースに反映
+- `npm run db:migrate` - マイグレーション実行
+- `npm run db:seed` - 初期データ投入
+- `npm run db:studio` - Prisma Studio起動
 
-## 注意事項
+## 🗄️ データベーススキーマ
 
-現在は認証機能が未実装のため、仮のユーザーID（1）でスコアが管理されています。認証機能実装後は適切なユーザー分離が行われます。
+主要テーブル:
+- `users` - ユーザー情報
+- `songs` - 楽曲マスター
+- `user_scores` - ユーザースコア
+- `aaa_bpi` - AAA BPI計算値
+
+## 📚 主要機能
+
+- ユーザー登録・認証
+- BPIスコア管理
+- 楽曲データ管理
+- アバター画像アップロード
+- スコア統計表示
+
+## 🔒 セキュリティ
+
+- パスワードはbcryptでハッシュ化
+- JWT認証
+- CSRF保護
+- 入力値検証
+
+## 📄 ライセンス
+
+Private Project

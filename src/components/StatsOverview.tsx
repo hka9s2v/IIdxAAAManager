@@ -1,35 +1,25 @@
 'use client';
 
-import { Song, UserScore } from '@/hooks/useBpiData';
+import { UserScore } from '@/hooks/useBpiDataDB';
 
 interface StatsOverviewProps {
-  songs: Song[];
   userScores: Record<number, UserScore>;
 }
 
-export function StatsOverview({ songs, userScores }: StatsOverviewProps) {
+export function StatsOverview({ userScores }: StatsOverviewProps) {
   console.log('StatsOverview userScores count:', Object.keys(userScores).length);
 
-  // Calculate statistics
-  const totalSongs = songs.length;
-  const playedSongs = songs.filter(song => userScores[song.id]).length;
-  const playRate = totalSongs > 0 ? (playedSongs / totalSongs) * 100 : 0;
-
+  // 基本統計の計算
+  const scoredSongs = Object.keys(userScores).length;
+  
   // Grade distribution
-  const gradeDistribution = songs.reduce((acc, song) => {
-    const userScore = userScores[song.id];
-    if (userScore?.grade) {
-      acc[userScore.grade] = (acc[userScore.grade] || 0) + 1;
+  const gradeDistribution = Object.values(userScores).reduce((acc, score) => {
+    if (score?.grade) {
+      acc[score.grade] = (acc[score.grade] || 0) + 1;
     }
     return acc;
   }, {} as Record<string, number>);
 
-
-  const averageBpi = playedSongs > 0 ? 
-    songs.reduce((acc, song) => {
-      const userScore = userScores[song.id];
-      return acc + (userScore?.bpi || 0);
-    }, 0) / playedSongs : 0;
 
   const gradeColors: Record<string, string> = {
     'AAA': 'bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-lg',
@@ -50,7 +40,7 @@ export function StatsOverview({ songs, userScores }: StatsOverviewProps) {
         <div className="flex flex-wrap gap-3">
           {['AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F'].map(grade => {
             const count = gradeDistribution[grade] || 0;
-            const percentage = playedSongs > 0 ? ((count / playedSongs) * 100).toFixed(1) : '0.0';
+            const percentage = scoredSongs > 0 ? ((count / scoredSongs) * 100).toFixed(1) : '0.0';
             return (
               <div key={grade} className="flex items-center gap-2 bg-gray-700 rounded-lg px-3 py-2 hover:bg-gray-600 transition-colors">
                 <span className={`px-2 py-1 rounded text-xs font-bold ${gradeColors[grade] || 'bg-gray-600 text-white'}`}>

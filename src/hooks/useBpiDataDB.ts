@@ -1,4 +1,7 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
+import { calculateAaaBpi, calculateAaaScore, calculateUserBpi } from '@/utils/bpiCalculations';
 
 export interface Song {
   id: number;
@@ -8,7 +11,9 @@ export interface Song {
   notes: number;
   bpm: string;
   wr?: number;
-  score89?: number;
+  avg?: number;
+  aaaBpi?: number;
+  coef?: number; // 譜面係数p
 }
 
 export interface UserScore {
@@ -18,13 +23,14 @@ export interface UserScore {
   date: string;
 }
 
+export { calculateAaaBpi, calculateAaaScore, calculateUserBpi } from '@/utils/bpiCalculations';
+
 export function useBpiDataDB() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [userScores, setUserScores] = useState<Record<number, UserScore>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 楽曲データの取得
   const fetchSongs = useCallback(async (level?: string) => {
     try {
       setLoading(true);
@@ -37,16 +43,17 @@ export function useBpiDataDB() {
       
       const data = await response.json();
       
-      // データ形式を既存のフォーマットに変換
-      const formattedSongs: Song[] = data.map((song: any) => ({
-        id: song.id,
-        title: song.title,
-        difficulty: song.difficulty,
-        level: song.level,
-        notes: song.notes,
-        bpm: song.bpm,
-        wr: song.worldRecord,
-        score89: song.score89,
+      const formattedSongs: Song[] = data.map((song: Record<string, unknown>) => ({
+        id: song.id as number,
+        title: song.title as string,
+        difficulty: song.difficulty as string,
+        level: song.level as number,
+        notes: song.notes as number,
+        bpm: song.bpm as string,
+        wr: song.wr as number,
+        avg: song.avg as number,
+        aaaBpi: song.aaaBpi as number,
+        coef: song.coef as number, // 譜面係数p
       }));
       
       setSongs(formattedSongs);
@@ -57,7 +64,6 @@ export function useBpiDataDB() {
     }
   }, []);
 
-  // ユーザースコアの取得
   const fetchUserScores = useCallback(async () => {
     try {
       const response = await fetch('/api/user-scores');
@@ -70,30 +76,24 @@ export function useBpiDataDB() {
       setUserScores(data);
     } catch (err) {
       console.error('Failed to fetch user scores:', err);
-      // ユーザースコアの取得エラーは致命的ではないため、エラー状態にしない
     }
   }, []);
 
-  // BPI計算関数
-  const calculateBPI = (score: number | null, song: Song): number | null => {
-    if (!score || !song.score89) return null;
+  const calculateBPI = (score: number, song: Song): number => {
+    if (!score || !song.wr || !song.avg || !song.notes) return 0;
     
-    const targetScore = song.score89;
-    const maxScore = song.wr || 0;
-    
-    if (maxScore === 0) return null;
-    
-    // BPI = (自分のスコア - 89%スコア) / (MAX - 89%スコア) * 100
-    const bpi = ((score - targetScore) / (maxScore - targetScore)) * 100;
-    return Math.round(bpi * 100) / 100; // 小数点以下2桁
+    return calculateUserBpi(score, {
+      notes: song.notes,
+      avg: song.avg,
+      wr: song.wr,
+      coef: song.coef // 譜面係数pを使用
+    });
   };
 
-  // ユーザースコアの更新
-  const updateUserScore = useCallback(async (songId: number, userScore: UserScore) => {
+  const updateUserScore = useCallback(async (songId: number, scoreData: Record<string, unknown>) => {
     try {
-      // 対象楽曲を取得してBPIを計算
       const song = songs.find(s => s.id === songId);
-      const calculatedBpi = song && userScore.score ? calculateBPI(userScore.score, song) : null;
+      const calculatedBpi = song && scoreData.score ? calculateBPI(scoreData.score as number, song) : 0;
       
       const response = await fetch('/api/user-scores', {
         method: 'POST',
@@ -102,8 +102,8 @@ export function useBpiDataDB() {
         },
         body: JSON.stringify({
           songId,
-          grade: userScore.grade,
-          score: userScore.score,
+          grade: scoreData.grade,
+          score: scoreData.score,
           bpi: calculatedBpi,
         }),
       });
@@ -112,12 +112,13 @@ export function useBpiDataDB() {
         throw new Error('Failed to update user score');
       }
 
-      // ローカル状態を更新（計算されたBPIを含む）
       setUserScores(prev => ({
         ...prev,
         [songId]: {
-          ...userScore,
+          grade: scoreData.grade as string,
+          score: scoreData.score as number,
           bpi: calculatedBpi,
+          date: new Date().toISOString(),
         },
       }));
     } catch (err) {
@@ -126,7 +127,6 @@ export function useBpiDataDB() {
     }
   }, [songs]);
 
-  // ユーザースコアの削除
   const removeUserScore = useCallback(async (songId: number) => {
     try {
       const response = await fetch(`/api/user-scores?songId=${songId}`, {
@@ -137,7 +137,6 @@ export function useBpiDataDB() {
         throw new Error('Failed to delete user score');
       }
 
-      // ローカル状態を更新
       setUserScores(prev => {
         const updated = { ...prev };
         delete updated[songId];
@@ -149,13 +148,11 @@ export function useBpiDataDB() {
     }
   }, []);
 
-  // マスターデータの更新（従来のBPI取得APIを使用）
   const refreshData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // 従来のBPI-DATA APIから取得
       const response = await fetch('/api/bpi-data');
       if (!response.ok) {
         throw new Error('Failed to fetch BPI data');
@@ -163,7 +160,6 @@ export function useBpiDataDB() {
       
       const bpiData = await response.json();
       
-      // データベースに保存
       const importResponse = await fetch('/api/songs', {
         method: 'POST',
         headers: {
@@ -176,7 +172,6 @@ export function useBpiDataDB() {
         throw new Error('Failed to import songs to database');
       }
       
-      // 楽曲データを再取得
       await fetchSongs();
       await fetchUserScores();
     } catch (err) {
@@ -186,7 +181,6 @@ export function useBpiDataDB() {
     }
   }, [fetchSongs, fetchUserScores]);
 
-  // 初期データ取得
   useEffect(() => {
     fetchSongs();
     fetchUserScores();
@@ -200,6 +194,6 @@ export function useBpiDataDB() {
     refreshData,
     updateUserScore,
     removeUserScore,
-    fetchSongs, // フィルタリング用
+    fetchSongs,
   };
 }

@@ -33,6 +33,7 @@ export default function LoginPage() {
         router.refresh();
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('ログインに失敗しました');
     } finally {
       setLoading(false);
