@@ -1,6 +1,6 @@
 'use client';
 
-import { Song, UserScore } from '@/hooks/useBpiDataDB';
+import { Song, UserScore, calculate89Score } from '@/hooks/useBpiDataDB';
 
 interface SongCardProps {
   song: Song;
@@ -12,9 +12,9 @@ interface SongCardProps {
 export function SongCard({ song, userScores, updateUserScore, removeUserScore }: SongCardProps) {
   const userScore = userScores[song.id];
   
-  // 89%スコアを表示する関数（鳥難易度）
-  const get89Score = (): number | null => {
-    return song.score89 || null;
+  // 89%スコアを動的計算（鳥難易度）
+  const get89Score = (): number => {
+    return calculate89Score(song);
   };
   
   const currentUserBpi = userScore?.bpi || null;
@@ -26,7 +26,6 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
     userScore: userScore,
     currentUserBpi: currentUserBpi,
     score89Value: score89Value,
-    song89Score: song.score89,
     songWR: song.wr
   });
 
@@ -124,7 +123,7 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
               <div>Notes: {song.notes} | BPM: {song.bpm}</div>
               <div className="bg-blue-100 px-1.5 py-0.5">
                 <span className="text-blue-700">鳥難度: </span>
-                <span className="text-blue-800 font-bold">{score89Value !== null ? score89Value.toLocaleString() : 'N/A'}</span>
+                <span className="text-blue-800 font-bold">{score89Value.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -139,7 +138,7 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
         
         {/* 鳥難度ボックス - スマホ版のみ、カード全体の右下に固定 */}
         <div className="md:hidden absolute bottom-8 right-0.5 bg-blue-100 bg-opacity-30 px-0.5 py-0.5 rounded text-xs z-20">
-          <span className="text-blue-800 font-bold">{score89Value !== null ? score89Value.toLocaleString() : 'N/A'}</span>
+          <span className="text-blue-800 font-bold">{score89Value.toLocaleString()}</span>
         </div>
 
         {/* Grade Selection */}

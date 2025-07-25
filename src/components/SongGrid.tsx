@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Song, UserScore } from '@/hooks/useBpiDataDB';
+import { Song, UserScore, calculate89Score } from '@/hooks/useBpiDataDB';
 import { SongCard } from './SongCard';
 
 interface SongGridProps {
@@ -61,7 +61,7 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
     const groups: { [key: string]: Song[] } = {};
     
     songs.forEach(song => {
-      const bpi = song.score89 || 0;
+      const bpi = calculate89Score(song);
       let rangeKey: string;
       
       if (bpi <= -100) {

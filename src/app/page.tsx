@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { SongGrid } from '@/components/SongGrid';
 import { FilterBar } from '@/components/FilterBar';
 import { AuthButton } from '@/components/AuthButton';
-import { useBpiDataDB } from '@/hooks/useBpiDataDB';
+import { useBpiDataDB, calculate89Score } from '@/hooks/useBpiDataDB';
 
 interface Filters {
   level: string;
@@ -22,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     // 初期読み込み時も89%BPI高い順でソート
     const sorted = [...songs].sort((a, b) => {
-      return (b.score89 || 0) - (a.score89 || 0);
+      return calculate89Score(b) - calculate89Score(a);
     });
     setFilteredSongs(sorted);
   }, [songs]);
@@ -45,8 +45,8 @@ export default function Home() {
 
     // ソート順に応じて89%BPIでソート
     filtered.sort((a, b) => {
-      const aBpi = a.score89 || 0;
-      const bBpi = b.score89 || 0;
+      const aBpi = calculate89Score(a);
+      const bBpi = calculate89Score(b);
       return sortAscending ? aBpi - bBpi : bBpi - aBpi;
     });
 

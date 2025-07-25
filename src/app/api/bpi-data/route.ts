@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 import zlib from 'zlib';
-import fs from 'fs';
-import path from 'path';
-
-const CACHE_FILE = path.join(process.cwd(), 'bpi_cache.json');
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 interface Song {
   title: string;
@@ -14,7 +9,6 @@ interface Song {
   notes?: number;
   bpm?: string;
   worldRecord?: number;
-  score89?: number;
   wr?: number;
   avg?: number;
   bpiData?: Record<string, unknown>;
@@ -25,67 +19,6 @@ interface ApiResponse {
   body?: unknown[];
   songs?: unknown[];
   data?: unknown[];
-}
-
-interface BpiData {
-  timestamp: number;
-  songs: Song[];
-  count: number;
-}
-
-function loadCache(): Song[] | null {
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const cacheData: BpiData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      const now = new Date().getTime();
-      
-      if (cacheData.timestamp && (now - cacheData.timestamp) < CACHE_DURATION) {
-        console.log('Loading songs from cache...');
-        return cacheData.songs || [];
-      } else {
-        console.log('Cache expired, will fetch new data');
-      }
-    }
-  } catch (error) {
-    console.error('Error loading cache:', error);
-  }
-  return null;
-}
-
-function saveCache(songs: Song[]) {
-  try {
-    const cacheData: BpiData = {
-      timestamp: new Date().getTime(),
-      songs: songs,
-      count: songs.length
-    };
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
-    console.log(`Saved ${songs.length} songs to cache`);
-  } catch (error) {
-    console.error('Error saving cache:', error);
-  }
-}
-
-function loadCacheIgnoreExpiry(): Song[] | null {
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const cacheData: BpiData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      let songs = cacheData.songs || [];
-      
-      // Add bpiData if missing
-      songs = songs.map(song => {
-        if (!song.bpiData && song.wr && song.avg) {
-          song.bpiData = calculateBaseBpiValues(song.wr, song.avg, song.notes || 0);
-        }
-        return song;
-      });
-      
-      return songs;
-    }
-  } catch (error) {
-    console.error('Error loading cache (ignore expiry):', error);
-  }
-  return null;
 }
 
 function calculateBaseBpiValues(wr: number, avg: number, notes: number) {
@@ -226,7 +159,6 @@ function formatBpiApiData(apiData: unknown) {
             avg: avg,
             notes: (songItem.notes as number) || 0,
             bpm: (songItem.bpm as string) || '',
-            score89: baseBpiData.score8_9,
             bpiData: baseBpiData
           });
         }
@@ -249,23 +181,6 @@ export async function GET(request: NextRequest) {
   try {
     console.log(`Starting BPI data fetching... (force refresh: ${forceRefresh})`);
     
-    // Check cache first (unless force refresh is requested)
-    if (!forceRefresh) {
-      const cachedSongs = loadCache();
-      if (cachedSongs && cachedSongs.length > 0) {
-        console.log(`Loaded ${cachedSongs.length} songs from cache`);
-        return NextResponse.json({
-          success: true,
-          data: cachedSongs,
-          count: cachedSongs.length,
-          source: 'cache',
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-    
-    console.log('Fetching fresh data from BPI Manager API...');
-    
     // Try the direct API endpoint
     const apiUrl = 'https://bpim.msqkn310.workers.dev/release';
     const response = await fetchWithRetry(apiUrl);
@@ -277,7 +192,6 @@ export async function GET(request: NextRequest) {
       
       if (songs.length > 0) {
         console.log(`Successfully extracted ${songs.length} songs from BPI API`);
-        saveCache(songs);
         return NextResponse.json({
           success: true,
           data: songs,
@@ -288,21 +202,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log('API request failed, checking cache for any data...');
-    const anyCachedSongs = loadCacheIgnoreExpiry();
-    if (anyCachedSongs && anyCachedSongs.length > 0) {
-      console.log(`Using expired cache data: ${anyCachedSongs.length} songs`);
-      return NextResponse.json({
-        success: true,
-        data: anyCachedSongs,
-        count: anyCachedSongs.length,
-        source: 'cache-expired',
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    // Return fallback data
-    console.log('No cached data available, using sample data');
+    console.log('API request failed, using sample data');
     const fallbackData = [
       {
         id: 1,
@@ -336,13 +236,33 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API Error:', error);
     
-    const fallbackData = loadCacheIgnoreExpiry();
+    const fallbackData = [
+      {
+        id: 1,
+        title: "Abraxas",
+        level: 11,
+        difficulty: "ANOTHER",
+        difficultyCode: "4",
+        bpi: 0,
+        wr: 2472,
+        avg: 2178,
+        notes: 1241,
+        bpm: "165",
+        bpiData: {
+          excellent: 100,
+          score17_18: 57,
+          score8_9: 10,
+          score15_18: -37,
+          average: 0
+        }
+      }
+    ];
     
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      data: fallbackData || [],
-      count: fallbackData?.length || 0,
+      data: fallbackData,
+      count: fallbackData.length,
       source: 'error-fallback',
       timestamp: new Date().toISOString()
     }, { status: 500 });

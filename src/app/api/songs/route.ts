@@ -55,18 +55,16 @@ export async function POST(request: NextRequest) {
           update: {
             level: songData.level,
             notes: songData.notes,
-            bpm: songData.bpm,
-            worldRecord: songData.wr,
-            score89: songData.bpiData?.score8_9 || null,
+            bpm: songData.bpm || null,
+            worldRecord: songData.wr || null,
           },
           create: {
             title: songData.title,
             difficulty: songData.difficulty,
             level: songData.level,
             notes: songData.notes,
-            bpm: songData.bpm,
-            worldRecord: songData.wr,
-            score89: songData.bpiData?.score8_9 || null,
+            bpm: songData.bpm || null,
+            worldRecord: songData.wr || null,
           },
         });
 

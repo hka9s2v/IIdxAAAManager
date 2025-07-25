@@ -8,7 +8,8 @@ export interface Song {
   notes: number;
   bpm: string;
   wr?: number;
-  score89?: number;
+  avg?: number;
+  bpiData?: Record<string, unknown>;
 }
 
 export interface UserScore {
@@ -16,6 +17,12 @@ export interface UserScore {
   score: number | null;
   bpi: number | null;
   date: string;
+}
+
+// 89%スコアを動的計算する関数
+export function calculate89Score(song: Song): number {
+  if (!song.notes) return 0;
+  return Math.round(song.notes * 2 * 0.889);
 }
 
 export function useBpiDataDB() {
@@ -47,7 +54,6 @@ export function useBpiDataDB() {
         bpm: song.bpm as string,
         wr: song.wr as number,
         avg: song.avg as number,
-        score89: song.score89 as number,
         bpiData: song.bpiData as Record<string, unknown>,
       }));
       
@@ -78,15 +84,15 @@ export function useBpiDataDB() {
 
   // BPI計算関数
   const calculateBPI = (score: number, song: Song): number => {
-    if (!score || !song.score89) return 0; // Changed from null to 0
+    if (!score || !song.wr || !song.avg) return 0;
     
-    const targetScore = song.score89;
-    const maxScore = song.wr || 0;
+    const targetScore89 = calculate89Score(song); // 89%スコア
+    const maxScore = song.wr;
     
-    if (maxScore === 0) return 0; // Changed from null to 0
+    if (maxScore === 0 || maxScore <= targetScore89) return 0;
     
     // BPI = (自分のスコア - 89%スコア) / (MAX - 89%スコア) * 100
-    const bpi = ((score - targetScore) / (maxScore - targetScore)) * 100;
+    const bpi = ((score - targetScore89) / (maxScore - targetScore89)) * 100;
     return Math.round(bpi * 100) / 100; // 小数点以下2桁
   };
 
