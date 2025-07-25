@@ -55,14 +55,14 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         username,
-        email: email || `${username}@example.com`, // メールアドレスが空の場合のデフォルト値
+        email,
         passwordHash: hashedPassword,
         displayName: username,
       },
     });
 
     // レスポンス用にパスワードハッシュを除外
-    const { passwordHash, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(
       { 

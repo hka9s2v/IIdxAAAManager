@@ -7,13 +7,26 @@ import path from 'path';
 const CACHE_FILE = path.join(process.cwd(), 'bpi_cache.json');
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
+interface Song {
+  title: string;
+  difficulty: string;
+  level: number;
+  notes?: number;
+  bpm?: string;
+  worldRecord?: number;
+  score89?: number;
+  wr?: number;
+  avg?: number;
+  bpiData?: Record<string, unknown>;
+}
+
 interface BpiData {
   timestamp: number;
-  songs: any[];
+  songs: Song[];
   count: number;
 }
 
-function loadCache(): any[] | null {
+function loadCache(): Song[] | null {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const cacheData: BpiData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
@@ -32,7 +45,7 @@ function loadCache(): any[] | null {
   return null;
 }
 
-function saveCache(songs: any[]) {
+function saveCache(songs: Song[]) {
   try {
     const cacheData: BpiData = {
       timestamp: new Date().getTime(),
@@ -46,7 +59,7 @@ function saveCache(songs: any[]) {
   }
 }
 
-function loadCacheIgnoreExpiry(): any[] | null {
+function loadCacheIgnoreExpiry(): Song[] | null {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const cacheData: BpiData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
@@ -157,11 +170,11 @@ async function fetchWithRetry(url: string, retries = 3): Promise<string> {
   });
 }
 
-function formatBpiApiData(apiData: any) {
-  const songs: any[] = [];
+function formatBpiApiData(apiData: unknown) {
+  const songs: Song[] = [];
   
   try {
-    let songsArray: any[] = [];
+    let songsArray: unknown[] = [];
     
     if (apiData.body && Array.isArray(apiData.body)) {
       songsArray = apiData.body;
@@ -175,12 +188,12 @@ function formatBpiApiData(apiData: any) {
     
     console.log(`Found ${songsArray.length} items in API response`);
     
-    songsArray.forEach((item: any) => {
-      const title = item.title;
-      const levelText = item.difficultyLevel;
-      const difficultyCode = item.difficulty;
-      const wr = item.wr;
-      const avg = item.avg;
+    songsArray.forEach((item: unknown) => {
+      const title = (item as any).title;
+      const levelText = (item as any).difficultyLevel;
+      const difficultyCode = (item as any).difficulty;
+      const wr = (item as any).wr;
+      const avg = (item as any).avg;
       
       if (title && levelText) {
         const level = parseInt(levelText);
@@ -193,7 +206,7 @@ function formatBpiApiData(apiData: any) {
         const difficulty = difficultyMap[difficultyCode];
         
         if (level >= 11 && level <= 12 && difficultyCode && difficultyMap[difficultyCode]) {
-          const baseBpiData = calculateBaseBpiValues(wr, avg, item.notes || 0);
+          const baseBpiData = calculateBaseBpiValues(wr, avg, (item as any).notes || 0);
           
           songs.push({
             id: songs.length + 1,
@@ -204,8 +217,8 @@ function formatBpiApiData(apiData: any) {
             bpi: 0,
             wr: wr,
             avg: avg,
-            notes: item.notes || 0,
-            bpm: item.bpm || '',
+            notes: (item as any).notes || 0,
+            bpm: (item as any).bpm || '',
             bpiData: baseBpiData
           });
         }

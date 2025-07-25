@@ -6,6 +6,11 @@ import { FilterBar } from '@/components/FilterBar';
 import { AuthButton } from '@/components/AuthButton';
 import { useBpiDataDB } from '@/hooks/useBpiDataDB';
 
+interface Filters {
+  level: string;
+  search: string;
+}
+
 export default function Home() {
   const { songs, userScores, loading, error, refreshData, updateUserScore, removeUserScore } = useBpiDataDB();
   const [filteredSongs, setFilteredSongs] = useState(songs);
@@ -30,8 +35,8 @@ export default function Home() {
     }
   }, [userScores, songs]);
 
-  const applyFilters = (filters: any) => {
-    let filtered = songs.filter(song => {
+  const applyFilters = (filters: Filters) => {
+    const filtered = songs.filter(song => {
       const matchesLevel = !filters.level || song.level.toString() === filters.level;
       const matchesSearch = !filters.search || song.title.toLowerCase().includes(filters.search.toLowerCase());
       
@@ -48,7 +53,7 @@ export default function Home() {
     setFilteredSongs(filtered);
   };
 
-  const handleFilterChange = (filters: any) => {
+  const handleFilterChange = (filters: Filters) => {
     setCurrentFilters(filters);
     applyFilters(filters);
   };
