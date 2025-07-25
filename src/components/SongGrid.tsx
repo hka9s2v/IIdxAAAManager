@@ -8,7 +8,7 @@ interface SongGridProps {
   songs: Song[];
   userScores: Record<number, UserScore>;
   loading: boolean;
-  updateUserScore: (songId: number, userScore: UserScore) => void;
+  updateUserScore: (songId: number, scoreData: Record<string, unknown>) => void;
   removeUserScore: (songId: number) => void;
 }
 

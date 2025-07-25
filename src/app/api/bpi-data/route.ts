@@ -20,6 +20,13 @@ interface Song {
   bpiData?: Record<string, unknown>;
 }
 
+// API レスポンス用の型定義
+interface ApiResponse {
+  body?: unknown[];
+  songs?: unknown[];
+  data?: unknown[];
+}
+
 interface BpiData {
   timestamp: number;
   songs: Song[];
@@ -176,24 +183,27 @@ function formatBpiApiData(apiData: unknown) {
   try {
     let songsArray: unknown[] = [];
     
-    if (apiData.body && Array.isArray(apiData.body)) {
-      songsArray = apiData.body;
+    const data = apiData as ApiResponse;
+    
+    if (data.body && Array.isArray(data.body)) {
+      songsArray = data.body;
     } else if (Array.isArray(apiData)) {
-      songsArray = apiData;
-    } else if (apiData.songs && Array.isArray(apiData.songs)) {
-      songsArray = apiData.songs;
-    } else if (apiData.data && Array.isArray(apiData.data)) {
-      songsArray = apiData.data;
+      songsArray = apiData as unknown[];
+    } else if (data.songs && Array.isArray(data.songs)) {
+      songsArray = data.songs;
+    } else if (data.data && Array.isArray(data.data)) {
+      songsArray = data.data;
     }
     
     console.log(`Found ${songsArray.length} items in API response`);
     
     songsArray.forEach((item: unknown) => {
-      const title = (item as any).title;
-      const levelText = (item as any).difficultyLevel;
-      const difficultyCode = (item as any).difficulty;
-      const wr = (item as any).wr;
-      const avg = (item as any).avg;
+      const songItem = item as Record<string, unknown>;
+      const title = songItem.title as string;
+      const levelText = songItem.difficultyLevel as string;
+      const difficultyCode = songItem.difficulty as string;
+      const wr = songItem.wr as number;
+      const avg = songItem.avg as number;
       
       if (title && levelText) {
         const level = parseInt(levelText);
@@ -206,19 +216,17 @@ function formatBpiApiData(apiData: unknown) {
         const difficulty = difficultyMap[difficultyCode];
         
         if (level >= 11 && level <= 12 && difficultyCode && difficultyMap[difficultyCode]) {
-          const baseBpiData = calculateBaseBpiValues(wr, avg, (item as any).notes || 0);
+          const baseBpiData = calculateBaseBpiValues(wr, avg, (songItem.notes as number) || 0);
           
           songs.push({
-            id: songs.length + 1,
             title: title.trim(),
             level: level,
             difficulty: difficulty,
-            difficultyCode: difficultyCode,
-            bpi: 0,
             wr: wr,
             avg: avg,
-            notes: (item as any).notes || 0,
-            bpm: (item as any).bpm || '',
+            notes: (songItem.notes as number) || 0,
+            bpm: (songItem.bpm as string) || '',
+            score89: baseBpiData.score8_9,
             bpiData: baseBpiData
           });
         }

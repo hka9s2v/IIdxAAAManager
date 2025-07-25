@@ -38,15 +38,17 @@ export function useBpiDataDB() {
       const data = await response.json();
       
       // データ形式を既存のフォーマットに変換
-      const formattedSongs: Song[] = data.map((song: any) => ({
-        id: song.id,
-        title: song.title,
-        difficulty: song.difficulty,
-        level: song.level,
-        notes: song.notes,
-        bpm: song.bpm,
-        wr: song.worldRecord,
-        score89: song.score89,
+      const formattedSongs: Song[] = data.map((song: Record<string, unknown>) => ({
+        id: song.id as number,
+        title: song.title as string,
+        difficulty: song.difficulty as string,
+        level: song.level as number,
+        notes: song.notes as number,
+        bpm: song.bpm as string,
+        wr: song.wr as number,
+        avg: song.avg as number,
+        score89: song.score89 as number,
+        bpiData: song.bpiData as Record<string, unknown>,
       }));
       
       setSongs(formattedSongs);
@@ -75,13 +77,13 @@ export function useBpiDataDB() {
   }, []);
 
   // BPI計算関数
-  const calculateBPI = (score: number | null, song: Song): number | null => {
-    if (!score || !song.score89) return null;
+  const calculateBPI = (score: number, song: Song): number => {
+    if (!score || !song.score89) return 0; // Changed from null to 0
     
     const targetScore = song.score89;
     const maxScore = song.wr || 0;
     
-    if (maxScore === 0) return null;
+    if (maxScore === 0) return 0; // Changed from null to 0
     
     // BPI = (自分のスコア - 89%スコア) / (MAX - 89%スコア) * 100
     const bpi = ((score - targetScore) / (maxScore - targetScore)) * 100;
@@ -89,11 +91,11 @@ export function useBpiDataDB() {
   };
 
   // ユーザースコアの更新
-  const updateUserScore = useCallback(async (songId: number, userScore: UserScore) => {
+  const updateUserScore = useCallback(async (songId: number, scoreData: Record<string, unknown>) => {
     try {
       // 対象楽曲を取得してBPIを計算
       const song = songs.find(s => s.id === songId);
-      const calculatedBpi = song && userScore.score ? calculateBPI(userScore.score, song) : null;
+      const calculatedBpi = song && scoreData.score ? calculateBPI(scoreData.score as number, song) : 0; // Changed from null to 0
       
       const response = await fetch('/api/user-scores', {
         method: 'POST',
@@ -102,8 +104,8 @@ export function useBpiDataDB() {
         },
         body: JSON.stringify({
           songId,
-          grade: userScore.grade,
-          score: userScore.score,
+          grade: scoreData.grade,
+          score: scoreData.score,
           bpi: calculatedBpi,
         }),
       });
@@ -116,8 +118,10 @@ export function useBpiDataDB() {
       setUserScores(prev => ({
         ...prev,
         [songId]: {
-          ...userScore,
+          grade: scoreData.grade as string,
+          score: scoreData.score as number,
           bpi: calculatedBpi,
+          date: new Date().toISOString(),
         },
       }));
     } catch (err) {

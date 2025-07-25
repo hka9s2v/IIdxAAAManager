@@ -5,7 +5,7 @@ import { Song, UserScore } from '@/hooks/useBpiDataDB';
 interface SongCardProps {
   song: Song;
   userScores: Record<number, UserScore>;
-  updateUserScore: (songId: number, userScore: UserScore) => void;
+  updateUserScore: (songId: number, scoreData: Record<string, unknown>) => void;
   removeUserScore: (songId: number) => void;
 }
 
@@ -72,14 +72,8 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
     }
   };
 
-  const getLevelColor = (level: number) => {
-    if (level >= 12) return 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg';
-    if (level >= 11) return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg';
-    if (level >= 10) return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg';
-    if (level >= 9) return 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg';
-    return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg';
-  };
-
+  // レベル表示用のスタイル計算は必要な場所で直接行う
+  
   const getCardStyle = () => {
     return 'bg-white border-gray-100';
   };
