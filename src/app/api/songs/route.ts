@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
       }
 
       return importedSongs;
-    }, {
-      timeout: 30000, // 30秒のタイムアウト
-    });
+         }, {
+       timeout: 150000, // 150秒のタイムアウト（30秒の5倍）
+     });
 
     return NextResponse.json({
       message: `Successfully imported ${result.length} songs`,
