@@ -142,6 +142,16 @@ export default function RegisterPage() {
             </button>
           </div>
         </form>
+        
+        {/* このサイトについてリンク */}
+        <div className="text-center">
+          <Link
+            href="/about"
+            className="text-sm text-gray-600 hover:text-gray-900 underline"
+          >
+            このサイトについて
+          </Link>
+        </div>
       </div>
     </div>
   );

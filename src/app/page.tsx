@@ -8,6 +8,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { SongGrid } from '@/components/SongGrid';
 import { calculateAaaBpi } from '@/utils/bpiCalculations';
 import { Header } from '@/components/Header';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 interface Filters {
   level: string;
@@ -17,7 +18,7 @@ interface Filters {
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { songs, userScores, loading, error, refreshData, updateUserScore, removeUserScore } = useBpiDataDB();
+  const { songs, userScores, loading, error, updateUserScore, removeUserScore } = useBpiDataDB();
   const [filteredSongs, setFilteredSongs] = useState(songs);
   const [currentFilters, setCurrentFilters] = useState({ level: '', search: '' });
   const [sortAscending, setSortAscending] = useState(false); // false = 降順, true = 昇順
@@ -104,7 +105,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-2">エラーが発生しました</h2>
             <p className="mb-4">{error}</p>
             <button
-              onClick={refreshData}
+              onClick={() => window.location.reload()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
             >
               再試行
@@ -118,25 +119,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <Header />
-      
-      <header className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-blue-600">
-              IIDX11/12鳥難易度表
-            </h1>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={refreshData}
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors text-sm"
-              >
-                {loading ? '読み込み中...' : 'マスタDB更新'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
 
       <main className="max-w-7xl mx-auto px-4 py-4">
         <FilterBar 
@@ -154,6 +136,7 @@ export default function Home() {
           removeUserScore={removeUserScore}
         />
       </main>
+      <ScrollToTop />
     </div>
   );
 }
