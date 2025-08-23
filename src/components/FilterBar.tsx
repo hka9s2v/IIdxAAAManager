@@ -75,7 +75,7 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
       </div>
       
       {/* Filters */}
-      <div className="flex gap-3 items-end">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
         {/* Search */}
         <div className="flex-1">
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -90,8 +90,10 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
           />
         </div>
 
-        {/* Level */}
-        <div className="w-36">
+        {/* Level and Sort Row */}
+        <div className="flex gap-3 items-end">
+          {/* Level */}
+          <div className="w-36">
           <label className="block text-xs font-medium text-gray-700 mb-1">
             レベル
           </label>
@@ -129,20 +131,21 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
           </div>
         </div>
 
-        {/* Sort Order Toggle */}
-        <div className="w-32">
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            AAA BPI順
-          </label>
-          <button
-            onClick={onToggleSort}
-            className="w-full bg-white hover:bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors flex items-center justify-center gap-1"
-          >
-            <span>{sortAscending ? '昇順' : '降順'}</span>
-            <span className="text-xs">
-              {sortAscending ? '↑' : '↓'}
-            </span>
-          </button>
+          {/* Sort Order Toggle */}
+          <div className="w-32">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              AAA BPI順
+            </label>
+            <button
+              onClick={onToggleSort}
+              className="w-full bg-white hover:bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors flex items-center justify-center gap-1"
+            >
+              <span>{sortAscending ? '昇順' : '降順'}</span>
+              <span className="text-xs">
+                {sortAscending ? '↑' : '↓'}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

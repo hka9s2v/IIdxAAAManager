@@ -8,6 +8,16 @@ export default function AboutPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          {/* ホームに戻るボタン */}
+          <div className="mb-6">
+            <Link 
+              href="/"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              ← ホームに戻る
+            </Link>
+          </div>
+
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
             このサイトについて
           </h1>
@@ -37,7 +47,7 @@ export default function AboutPage() {
                   href="http://norimiso.web.fc2.com/aboutBPI.html" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline font-medium"
+                  className="text-blue-600 hover:text-blue-800 underline font-medium break-all"
                 >
                   http://norimiso.web.fc2.com/aboutBPI.html
                 </a>
@@ -58,7 +68,7 @@ export default function AboutPage() {
                   href="https://docs2.poyashi.me/other/repositories/#proxypoyashime" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-green-600 hover:text-green-800 underline font-medium"
+                  className="text-green-600 hover:text-green-800 underline font-medium break-all"
                 >
                   https://docs2.poyashi.me/other/repositories/#proxypoyashime
                 </a>
@@ -110,15 +120,7 @@ export default function AboutPage() {
               </div>
             </section>
 
-            {/* ホームに戻るボタン */}
-            <div className="pt-6 border-t border-gray-200">
-              <Link 
-                href="/"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                ← ホームに戻る
-              </Link>
-            </div>
+
           </div>
         </div>
       </div>
