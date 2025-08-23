@@ -70,21 +70,87 @@ export async function POST(request: NextRequest) {
 
     console.log(`Received ${songs.length} songs for import`);
 
-    // バッチサイズを設定
-    const BATCH_SIZE = 100; // 一度に処理する楽曲数
-    const batches = [];
-    
-    // 楽曲データをバッチに分割
-    for (let i = 0; i < songs.length; i += BATCH_SIZE) {
-      batches.push(songs.slice(i, i + BATCH_SIZE));
+    // 一括クエリで既存楽曲を取得（効率化のため）
+    console.log('Fetching existing songs for comparison...');
+    const existingSongs = await prisma.song.findMany({
+      select: {
+        title: true,
+        difficulty: true,
+        level: true,
+        notes: true,
+        bpm: true,
+        wr: true,
+        avg: true,
+      }
+    });
+
+    // 既存楽曲をMapに変換（高速検索用）
+    const existingMap = new Map();
+    existingSongs.forEach(song => {
+      const key = `${song.title}|${song.difficulty}`;
+      existingMap.set(key, song);
+    });
+
+    console.log(`Found ${existingSongs.length} existing songs in database`);
+
+    // 事前フィルタリング：スキップ対象と更新対象を分離
+    const songsToProcess = [];
+    let skippedCount = 0;
+
+    for (const songData of songs) {
+      if (!songData.title || !songData.difficulty) {
+        continue; // 無効なデータはスキップ
+      }
+
+      const key = `${songData.title}|${songData.difficulty}`;
+      const existing = existingMap.get(key);
+
+      // 既存データと完全一致の場合はスキップ
+      if (existing && 
+          existing.level === (songData.level || 0) &&
+          existing.notes === (songData.notes || null) &&
+          existing.bpm === (songData.bpm || null) &&
+          existing.wr === (songData.wr || null) &&
+          existing.avg === (songData.avg || null)) {
+        skippedCount++;
+        continue;
+      }
+
+      songsToProcess.push(songData);
     }
 
-    console.log(`Processing ${batches.length} batches of ${BATCH_SIZE} songs each`);
+    console.log(`Pre-filtering complete: ${songsToProcess.length} songs to process, ${skippedCount} skipped`);
+
+    // 処理対象がない場合は早期リターン
+    if (songsToProcess.length === 0) {
+      return NextResponse.json({
+        message: `All ${songs.length} songs were already up-to-date (skipped)`,
+        count: 0,
+        details: {
+          successCount: 0,
+          skippedCount,
+          errorCount: 0,
+          totalProcessed: skippedCount,
+          batchesProcessed: 0,
+          batchSize: 0
+        }
+      });
+    }
+
+    // バッチサイズを設定（処理対象のみ）
+    const BATCH_SIZE = 50; // 504エラー対策でサイズ縮小
+    const batches = [];
+    
+    // 処理対象楽曲をバッチに分割
+    for (let i = 0; i < songsToProcess.length; i += BATCH_SIZE) {
+      batches.push(songsToProcess.slice(i, i + BATCH_SIZE));
+    }
+
+    console.log(`Processing ${batches.length} batches of ${BATCH_SIZE} songs each (filtered data)`);
 
     const allImportedSongs = [];
     let successCount = 0;
     let errorCount = 0;
-    let skippedCount = 0;
 
     // バッチごとに処理
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
@@ -98,35 +164,7 @@ export async function POST(request: NextRequest) {
 
           for (const songData of batch) {
             try {
-              // データの検証
-              if (!songData.title || !songData.difficulty) {
-                console.warn('Skipping invalid song data:', songData);
-                continue;
-              }
-
-              // 既存データをチェック
-              const existing = await tx.song.findUnique({
-                where: {
-                  title_difficulty: {
-                    title: songData.title,
-                    difficulty: songData.difficulty,
-                  },
-                },
-              });
-
-              // 既存データがあり、同じ内容の場合はスキップ
-              if (existing && 
-                  existing.level === (songData.level || 0) &&
-                  existing.notes === (songData.notes || null) &&
-                  existing.bpm === (songData.bpm || null) &&
-                  existing.wr === (songData.wr || null) &&
-                  existing.avg === (songData.avg || null)) {
-                console.log(`Skipping unchanged song: ${songData.title} [${songData.difficulty}]`);
-                skippedCount++;
-                continue;
-              }
-
-              // 楽曲データをupsert（現在のスキーマに合わせる）
+              // 楽曲データをupsert（事前フィルタリング済みなので直接処理）
               const song = await tx.song.upsert({
                 where: {
                   title_difficulty: {
@@ -169,10 +207,13 @@ export async function POST(request: NextRequest) {
 
         allImportedSongs.push(...batchResult);
         
-        // バッチ間で短い待機（DB負荷軽減）
+        // バッチ間で待機（504エラー対策 + DB負荷軽減）
         if (batchIndex < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
+        
+        // 進行状況ログ
+        console.log(`Batch ${batchIndex + 1}/${batches.length} completed. Success: ${batchResult.length}, Total processed: ${successCount}`);
         
       } catch (error) {
         console.error(`Error processing batch ${batchIndex + 1}:`, error);
@@ -184,7 +225,7 @@ export async function POST(request: NextRequest) {
     const result = allImportedSongs;
 
     return NextResponse.json({
-      message: `Batch processing completed. Created/Updated: ${successCount}, Skipped: ${skippedCount}, Errors: ${errorCount}`,
+      message: `Optimized batch processing completed. Created/Updated: ${successCount}, Skipped (pre-filtered): ${skippedCount}, Errors: ${errorCount}`,
       count: result.length,
       details: {
         successCount,
@@ -192,7 +233,8 @@ export async function POST(request: NextRequest) {
         errorCount,
         totalProcessed: successCount + skippedCount + errorCount,
         batchesProcessed: batches.length,
-        batchSize: BATCH_SIZE
+        batchSize: BATCH_SIZE,
+        optimizationApplied: "Pre-filtering with bulk query lookup"
       }
     });
 
