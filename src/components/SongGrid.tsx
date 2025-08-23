@@ -83,16 +83,20 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
       } else if (bpi >= 100) {
         rangeKey = '100以上';
       } else {
-        // 負の数も正しく処理するように修正
-        let rangeStart: number;
-        if (bpi >= 0) {
-          rangeStart = Math.floor(bpi / 10) * 10;
+        // -10から0の範囲を特別処理
+        if (bpi >= -10 && bpi <= 0) {
+          rangeKey = `-10~0`;
         } else {
-          // 負の数の場合は特別な処理
-          rangeStart = Math.ceil((bpi - 9) / 10) * 10;
+          // その他の範囲は従来通り
+          let rangeStart: number;
+          if (bpi >= 0) {
+            rangeStart = Math.floor(bpi / 10) * 10;
+          } else {
+            rangeStart = Math.ceil((bpi - 9) / 10) * 10;
+          }
+          const rangeEnd = rangeStart + 9;
+          rangeKey = `${rangeStart}~${rangeEnd}`;
         }
-        const rangeEnd = rangeStart + 9;
-        rangeKey = `${rangeStart}~${rangeEnd}`;
       }
       
       if (!levelGroups[level]) {
@@ -149,7 +153,10 @@ export function SongGrid({ songs, userScores, loading, updateUserScore, removeUs
   const collapseAll = () => {
     const allSections: string[] = [];
     sortedLevels.forEach(level => {
-      allSections.push(level);
+      // レベルは展開したままにして、AAA BPIヘッダー行を表示
+      // allSections.push(level); // これをコメントアウト
+      
+      // AAA BPI範囲の楽曲リストのみを折りたたむ
       const ranges = Object.keys(levelGroupedSongs[level]);
       ranges.forEach(range => {
         allSections.push(`${level}-${range}`);
