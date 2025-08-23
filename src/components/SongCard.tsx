@@ -2,6 +2,8 @@
 
 import { Song, UserScore } from '@/hooks/useBpiDataDB';
 import { calculateAaaBpi } from '@/utils/bpiCalculations';
+import { SongInfoModal } from './SongInfoModal';
+import { useState } from 'react';
 
 interface SongCardProps {
   song: Song;
@@ -11,6 +13,7 @@ interface SongCardProps {
 }
 
 export function SongCard({ song, userScores, updateUserScore, removeUserScore }: SongCardProps) {
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const userScore = userScores[song.id];
   
   const getAaaBpi = (): number | null => {
@@ -108,7 +111,10 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
         <div className={`p-1.5 md:p-2 ${getGradeBackgroundStyle()} flex-1`}>
           <div className="hidden md:block">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-gray-900 font-medium text-sm leading-tight line-clamp-1 flex-1 mr-2">
+              <h3 
+                className="text-gray-900 font-medium text-sm leading-tight line-clamp-1 flex-1 mr-2 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={() => setShowInfoModal(true)}
+              >
                 {song.title}
               </h3>
               <span className={`px-2 py-1 rounded text-xs font-bold flex-shrink-0 ${getDifficultyColor(song.difficulty)}`}>
@@ -127,7 +133,10 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
           </div>
           
           <div className="md:hidden relative z-10">
-            <h3 className="text-gray-900 font-medium text-xs leading-tight line-clamp-3">
+            <h3 
+              className="text-gray-900 font-medium text-xs leading-tight line-clamp-3 cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => setShowInfoModal(true)}
+            >
               {song.title}
             </h3>
           </div>
@@ -158,6 +167,15 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
         </div>
 
       </div>
+
+      {/* 曲情報モーダル */}
+      {showInfoModal && (
+        <SongInfoModal
+          song={song}
+          userScore={userScore}
+          onClose={() => setShowInfoModal(false)}
+        />
+      )}
     </>
   );
 }
