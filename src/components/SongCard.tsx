@@ -80,19 +80,23 @@ export function SongCard({ song, userScores, updateUserScore, removeUserScore }:
     
     switch (grade) {
       case 'MAX':
-        return 'bg-gradient-to-r from-pink-100 to-orange-100';
+        return 'bg-pink-300';
       case 'AAA':
-        return 'bg-gradient-to-r from-yellow-100 to-amber-100';
+        return 'bg-yellow-300';
       case 'AA':
-        return 'bg-gradient-to-r from-orange-100 to-red-100';
+        return 'bg-orange-300';
       case 'A':
-        return 'bg-gradient-to-r from-blue-100 to-indigo-100';
+        return 'bg-blue-300';
       case 'B':
+        return 'bg-green-300';
       case 'C':
+        return 'bg-cyan-300';
       case 'D':
+        return 'bg-violet-300';
       case 'E':
+        return 'bg-rose-300';
       case 'F':
-        return 'bg-gradient-to-r from-gray-100 to-slate-100';
+        return 'bg-gray-300';
       default:
         return 'bg-white';
     }

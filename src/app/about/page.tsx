@@ -30,7 +30,7 @@ export default function AboutPage() {
               </h2>
               <p className="text-gray-700 leading-relaxed">
                 beatmania IIDX の ☆11/☆12 楽曲における BPI を基準とした
-                難易度表を提供するサイトです。プレイヤーの実力向上と目標設定をサポートします。
+                難易度表を提供するサイトです。
               </p>
             </section>
 
@@ -60,7 +60,7 @@ export default function AboutPage() {
                 楽曲マスタデータについて
               </h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                楽曲の基本情報（タイトル、ノート数、BPM、平均スコア等）は、
+                楽曲のマスタデータは、
                 以下記載のAPI経由で取得しています：
               </p>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -94,12 +94,6 @@ export default function AboutPage() {
                   <h3 className="font-medium text-gray-900 mb-2">2. スコア記録</h3>
                   <p className="text-gray-700 text-sm">
                     楽曲カードをクリックして、達成したスコアを記録できます。
-                  </p>
-                </div>
-                <div className="border-l-4 border-purple-500 pl-4">
-                  <h3 className="font-medium text-gray-900 mb-2">3. BPI確認</h3>
-                  <p className="text-gray-700 text-sm">
-                    記録したスコアに基づいて、自動的にBPI値が計算・表示されます。
                   </p>
                 </div>
               </div>

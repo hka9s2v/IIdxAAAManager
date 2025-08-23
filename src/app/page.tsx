@@ -13,6 +13,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 interface Filters {
   level: string;
   search: string;
+  grade: string;
 }
 
 export default function Home() {
@@ -20,15 +21,21 @@ export default function Home() {
   const router = useRouter();
   const { songs, userScores, loading, error, updateUserScore, removeUserScore } = useBpiDataDB();
   const [filteredSongs, setFilteredSongs] = useState(songs);
-  const [currentFilters, setCurrentFilters] = useState({ level: '', search: '' });
-  const [sortAscending, setSortAscending] = useState(false); // false = 降順, true = 昇順
+  const [currentFilters, setCurrentFilters] = useState({ level: '', search: '', grade: '' });
   
   useEffect(() => {
     const sorted = [...songs].sort((a, b) => {
       const aValue = (a.notes && a.avg && a.wr) ? 
-        calculateAaaBpi({ notes: a.notes, avg: a.avg, wr: a.wr, coef: a.coef }) : 0;
+        calculateAaaBpi({ notes: a.notes, avg: a.avg, wr: a.wr, coef: a.coef }) : -999;
       const bValue = (b.notes && b.avg && b.wr) ? 
-        calculateAaaBpi({ notes: b.notes, avg: b.avg, wr: b.wr, coef: b.coef }) : 0;
+        calculateAaaBpi({ notes: b.notes, avg: b.avg, wr: b.wr, coef: b.coef }) : -999;
+      
+      // -999（データ不足）の楽曲は常に最後に配置
+      if (aValue === -999 && bValue === -999) return 0;
+      if (aValue === -999) return 1;
+      if (bValue === -999) return -1;
+      
+      // デフォルトは降順（高BPI → 低BPI）
       return bValue - aValue;
     });
     setFilteredSongs(sorted);
@@ -40,39 +47,46 @@ export default function Home() {
     }
   }, [userScores, songs]);
 
-  const applyFilters = (filters: Filters) => {
+  const applyFilters = useCallback((filters: Filters) => {
     const filtered = songs.filter(song => {
       const matchesLevel = !filters.level || song.level.toString() === filters.level;
       const matchesSearch = !filters.search || song.title.toLowerCase().includes(filters.search.toLowerCase());
       
-      return matchesLevel && matchesSearch;
+      // グレードフィルター：ユーザーのスコアがある楽曲のみ対象
+      const userScore = userScores[song.id];
+      const matchesGrade = !filters.grade || (userScore && userScore.grade === filters.grade);
+      
+      return matchesLevel && matchesSearch && matchesGrade;
     });
 
     filtered.sort((a, b) => {
       const aBpi = (a.notes && a.avg && a.wr) ? 
-        calculateAaaBpi({ notes: a.notes, avg: a.avg, wr: a.wr, coef: a.coef }) : 0;
+        calculateAaaBpi({ notes: a.notes, avg: a.avg, wr: a.wr, coef: a.coef }) : -999;
       const bBpi = (b.notes && b.avg && b.wr) ? 
-        calculateAaaBpi({ notes: b.notes, avg: b.avg, wr: b.wr, coef: b.coef }) : 0;
-      return sortAscending ? aBpi - bBpi : bBpi - aBpi;
+        calculateAaaBpi({ notes: b.notes, avg: b.avg, wr: b.wr, coef: b.coef }) : -999;
+      
+      // -999（データ不足）の楽曲は常に最後に配置
+      if (aBpi === -999 && bBpi === -999) return 0;
+      if (aBpi === -999) return 1; // aを後に
+      if (bBpi === -999) return -1; // bを後に
+      
+      // 降順固定（高BPI → 低BPI）
+      return bBpi - aBpi;
     });
 
     setFilteredSongs(filtered);
-  };
+  }, [songs, userScores]);
 
   const handleFilterChange = (filters: Filters) => {
     setCurrentFilters(filters);
     applyFilters(filters);
   };
 
-  const toggleSortOrder = () => {
-    setSortAscending(!sortAscending);
-  };
-
   useEffect(() => {
     if (songs.length > 0) {
       applyFilters(currentFilters);
     }
-  }, [sortAscending]);
+  }, [applyFilters, currentFilters]);
 
   // 認証チェック
   useEffect(() => {
@@ -121,10 +135,8 @@ export default function Home() {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-4">
-        <FilterBar 
+                <FilterBar
           onFilterChange={handleFilterChange} 
-          sortAscending={sortAscending} 
-          onToggleSort={toggleSortOrder}
           songs={filteredSongs}
           userScores={userScores}
         />

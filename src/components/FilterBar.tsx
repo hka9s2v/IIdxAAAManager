@@ -4,15 +4,14 @@ import { useState, useEffect } from 'react';
 import { Song, UserScore } from '@/hooks/useBpiDataDB';
 
 interface FilterBarProps {
-  onFilterChange: (filters: { level: string; search: string }) => void;
-  sortAscending: boolean;
-  onToggleSort: () => void;
+  onFilterChange: (filters: { level: string; search: string; grade: string }) => void;
   songs: Song[];
   userScores: Record<number, UserScore>;
 }
 
-export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, userScores }: FilterBarProps) {
-  const [filters, setFilters] = useState({ level: '', search: '' });
+export function FilterBar({ onFilterChange, songs, userScores }: FilterBarProps) {
+  const [filters, setFilters] = useState({ level: '', search: '', grade: '' });
+  const [isMobile, setIsMobile] = useState(false);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -23,6 +22,18 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
   // 初期フィルターを適用
   useEffect(() => {
     onFilterChange(filters);
+  }, []);
+
+  // 画面サイズを監視
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // 統計データの計算
@@ -56,11 +67,22 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
       {/* Grade Distribution */}
       <div className="mb-3">
         <div className="flex flex-wrap gap-2">
-          {['AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F'].map(grade => {
+          {/* スマホではAAA,AA,Aのみ、PCでは全グレード */}
+          {(isMobile 
+            ? ['AAA', 'AA', 'A'] 
+            : ['AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F']
+          ).map(grade => {
             const count = gradeDistribution[grade] || 0;
-            const percentage = totalSongs > 0 ? ((count / totalSongs) * 100).toFixed(1) : '0.0';
+            const percentage = totalSongs > 0 ? Math.round((count / totalSongs) * 100) : 0;
+            const isSelected = filters.grade === grade;
             return (
-              <div key={grade} className="flex items-center gap-1 bg-white rounded px-2 py-1 hover:bg-gray-100 transition-colors border border-gray-200">
+              <button
+                key={grade}
+                onClick={() => handleFilterChange('grade', isSelected ? '' : grade)}
+                className={`flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100 transition-colors border border-gray-200 ${
+                  isSelected ? 'bg-blue-100 border-blue-300' : 'bg-white'
+                }`}
+              >
                 <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${gradeColors[grade] || 'bg-gray-600 text-white'}`}>
                   {grade}
                 </span>
@@ -68,7 +90,7 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
                   <span className="font-medium">{count}</span>
                   <span className="text-gray-600 ml-1">({percentage}%)</span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -90,10 +112,8 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
           />
         </div>
 
-        {/* Level and Sort Row */}
-        <div className="flex gap-3 items-end">
-          {/* Level */}
-          <div className="w-36">
+        {/* Level */}
+        <div className="w-36">
           <label className="block text-xs font-medium text-gray-700 mb-1">
             レベル
           </label>
@@ -127,23 +147,6 @@ export function FilterBar({ onFilterChange, sortAscending, onToggleSort, songs, 
               }`}
             >
               ★12
-            </button>
-          </div>
-        </div>
-
-          {/* Sort Order Toggle */}
-          <div className="w-32">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              AAA BPI順
-            </label>
-            <button
-              onClick={onToggleSort}
-              className="w-full bg-white hover:bg-gray-100 border border-gray-300 rounded-md px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors flex items-center justify-center gap-1"
-            >
-              <span>{sortAscending ? '昇順' : '降順'}</span>
-              <span className="text-xs">
-                {sortAscending ? '↑' : '↓'}
-              </span>
             </button>
           </div>
         </div>

@@ -91,17 +91,9 @@ export function Header() {
               </svg>
             </button>
 
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">BPI</span>
-              </div>
-              {/* デスクトップ表示 */}
-              <h1 className="hidden sm:block text-xl font-bold text-gray-900">
+            <Link href="/" className="flex items-center">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                 IIDX11/12鳥難易度表
-              </h1>
-              {/* モバイル表示（短縮版） */}
-              <h1 className="sm:hidden text-lg font-bold text-gray-900">
-                IIDX11/12鳥
               </h1>
             </Link>
           </div>
