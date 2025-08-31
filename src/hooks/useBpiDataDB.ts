@@ -153,23 +153,12 @@ export function useBpiDataDB() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/bpi-data');
-      if (!response.ok) {
-        throw new Error('Failed to fetch BPI data');
-      }
-      
-      const bpiData = await response.json();
-      
-      const importResponse = await fetch('/api/songs', {
+      const response = await fetch('/api/songs/import', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bpiData),
       });
       
-      if (!importResponse.ok) {
-        throw new Error('Failed to import songs to database');
+      if (!response.ok) {
+        throw new Error('Failed to import songs from external API');
       }
       
       await fetchSongs();

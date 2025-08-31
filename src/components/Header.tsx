@@ -41,31 +41,18 @@ export function Header() {
     setShowUpdateModal(false);
     
     try {
-      // BPI-dataからデータを取得
-      const bpiResponse = await fetch('/api/bpi-data');
-      const bpiData = await bpiResponse.json();
+      const response = await fetch('/api/songs/import', {
+        method: 'POST',
+      });
       
-      if (bpiData.success && bpiData.data) {
-        // songs APIに送信
-        const songsResponse = await fetch('/api/songs', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(bpiData.data),
-        });
-        
-        const result = await songsResponse.json();
-        
-        if (songsResponse.ok) {
-          alert(`データベース更新完了: ${result.message}`);
-          // ページをリロードしてデータを更新
-          window.location.reload();
-        } else {
-          throw new Error(result.error || 'データベース更新に失敗しました');
-        }
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`データベース更新完了: ${result.message}\n詳細: 新規/更新=${result.details.imported}件, スキップ=${result.details.skipped}件`);
+        // ページをリロードしてデータを更新
+        window.location.reload();
       } else {
-        throw new Error('BPIデータの取得に失敗しました');
+        throw new Error(result.error || 'データベース更新に失敗しました');
       }
     } catch (error) {
       console.error('データベース更新エラー:', error);

@@ -83,6 +83,8 @@ AWS_S3_BUCKET_NAME="your-bucket-name"
 
 ### 開発環境
 ```bash
+// 起動していない場合
+brew services start postgresql
 npm run dev
 ```
 http://localhost:3000 でアクセス可能
