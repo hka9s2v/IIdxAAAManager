@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import https from 'https';
-import zlib from 'zlib';
+import axios from 'axios';
 
 interface Song {
   title: string;
@@ -11,7 +10,6 @@ interface Song {
   worldRecord?: number;
   wr?: number;
   avg?: number;
-  bpiData?: Record<string, unknown>;
 }
 
 // API レスポンス用の型定義
@@ -21,93 +19,25 @@ interface ApiResponse {
   data?: unknown[];
 }
 
-function calculateBaseBpiValues(wr: number, avg: number, notes: number) {
-  const maxScore = notes * 2;
-  
-  const ranges = {
-    excellent: Math.round(((wr - avg) / (wr - avg)) * 100),
-    score17_18: Math.round(((maxScore * (17/18) - avg) / (wr - avg)) * 100),
-    score8_9: Math.round(((maxScore * (8/9) - avg) / (wr - avg)) * 100),
-    score15_18: Math.round(((maxScore * (15/18) - avg) / (wr - avg)) * 100),
-    average: 0
-  };
-  
-  return ranges;
-}
-
 async function fetchWithRetry(url: string, retries = 3): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const request = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json, text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-      },
-      timeout: 30000
-    }, (response) => {
-      const chunks: Buffer[] = [];
-      
-      response.on('data', (chunk) => {
-        chunks.push(chunk);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get(url, {
+        timeout: 30000,
+        responseType: 'text'
       });
       
-      response.on('end', () => {
-        if (response.statusCode === 200) {
-          try {
-            let buffer = Buffer.concat(chunks);
-            
-            if (response.headers['content-encoding'] === 'gzip') {
-              buffer = Buffer.from(zlib.gunzipSync(buffer));
-            } else if (response.headers['content-encoding'] === 'deflate') {
-              buffer = Buffer.from(zlib.inflateSync(buffer));
-            } else if (response.headers['content-encoding'] === 'br') {
-              buffer = Buffer.from(zlib.brotliDecompressSync(buffer));
-            }
-            
-            const data = buffer.toString('utf8');
-            resolve(data);
-          } catch (decompressError) {
-            reject(decompressError);
-          }
-        } else if (retries > 0) {
-          setTimeout(() => {
-            fetchWithRetry(url, retries - 1)
-              .then(resolve)
-              .catch(reject);
-          }, 2000);
-        } else {
-          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
-        }
-      });
-    });
-    
-    request.on('error', (error) => {
-      if (retries > 0) {
-        setTimeout(() => {
-          fetchWithRetry(url, retries - 1)
-            .then(resolve)
-            .catch(reject);
-        }, 2000);
-      } else {
-        reject(error);
+      return response.data;
+    } catch (error) {
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
       }
-    });
-    
-    request.on('timeout', () => {
-      request.destroy();
-      if (retries > 0) {
-        setTimeout(() => {
-          fetchWithRetry(url, retries - 1)
-            .then(resolve)
-            .catch(reject);
-        }, 2000);
-      } else {
-        reject(new Error('Request timeout'));
-      }
-    });
-  });
+      throw error;
+    }
+  }
+  
+  throw new Error('All retry attempts failed');
 }
 
 function formatBpiApiData(apiData: unknown) {
@@ -155,15 +85,13 @@ function formatBpiApiData(apiData: unknown) {
         const difficultyMap: Record<string, string> = {
           "3": "HYPER",
           "4": "ANOTHER", 
-          "9": "ANOTHER", // 12☆のANOTHER
+          "9": "ANOTHER", // lv12のANOTHER
           "10": "LEGGENDARIA",
-          "11": "LEGGENDARIA" // 12☆のLEGGENDARIA
+          "11": "LEGGENDARIA" // lv12☆のLEGGENDARIA
         };
         const difficulty = difficultyMap[difficultyCode];
         
         if (level >= 11 && level <= 12 && difficultyCode && difficulty) {
-          const baseBpiData = calculateBaseBpiValues(wr, avg, notes);
-          
           songs.push({
             title: title.trim(),
             level: level,
@@ -172,7 +100,6 @@ function formatBpiApiData(apiData: unknown) {
             avg: avg,
             notes: notes,
             bpm: (songItem.bpm as string) || '',
-            bpiData: baseBpiData
           });
         }
       }
@@ -199,24 +126,12 @@ export async function GET(request: NextRequest) {
     const response = await fetchWithRetry(apiUrl);
     
     if (response) {
-      console.log('Successfully fetched data from BPI Manager proxy API');
       const data = JSON.parse(response);
-      
-      // デバッグ用：データ構造をログ出力
-      console.log('API Response structure:', {
-        hasVersion: !!data.version,
-        hasRequireVersion: !!data.requireVersion,
-        hasBody: !!data.body,
-        bodyType: Array.isArray(data.body) ? 'array' : typeof data.body,
-        bodyLength: Array.isArray(data.body) ? data.body.length : 'N/A',
-        firstItemKeys: Array.isArray(data.body) && data.body.length > 0 ? Object.keys(data.body[0]) : 'N/A'
-      });
       
       // 新しいデータ形式に対応: { version: ..., requireVersion: ..., body: [...] }
       const songs = formatBpiApiData(data.body || data);
       
       if (songs.length > 0) {
-        console.log(`Successfully extracted ${songs.length} songs from BPI Manager API`);
         return NextResponse.json({
           success: true,
           data: songs,
@@ -228,68 +143,24 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log('API request failed, using sample data');
-    const fallbackData = [
-      {
-        id: 1,
-        title: "Abraxas",
-        level: 11,
-        difficulty: "ANOTHER",
-        difficultyCode: "4",
-        bpi: 0,
-        wr: 2472,
-        avg: 2178,
-        notes: 1241,
-        bpm: "165",
-        bpiData: {
-          excellent: 100,
-          score17_18: 57,
-          score8_9: 10,
-          score15_18: -37,
-          average: 0
-        }
-      }
-    ];
-    
     return NextResponse.json({
-      success: true,
-      data: fallbackData,
-      count: fallbackData.length,
-      source: 'fallback',
+      success: false,
+      data: [],
+      count: 0,
+      source: 'api-failed',
+      error: 'API request failed',
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
     console.error('API Error:', error);
     
-    const fallbackData = [
-      {
-        id: 1,
-        title: "Abraxas",
-        level: 11,
-        difficulty: "ANOTHER",
-        difficultyCode: "4",
-        bpi: 0,
-        wr: 2472,
-        avg: 2178,
-        notes: 1241,
-        bpm: "165",
-        bpiData: {
-          excellent: 100,
-          score17_18: 57,
-          score8_9: 10,
-          score15_18: -37,
-          average: 0
-        }
-      }
-    ];
-    
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      data: fallbackData,
-      count: fallbackData.length,
-      source: 'error-fallback',
+      data: [],
+      count: 0,
+      source: 'error',
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

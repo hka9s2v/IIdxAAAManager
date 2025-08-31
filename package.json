@@ -20,6 +20,7 @@
     "@aws-sdk/s3-request-presigner": "^3.850.0",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.11.1",
+    "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.22.0",
@@ -27,6 +28,8 @@
     "multer": "^2.0.2",
     "next": "15.3.4",
     "next-auth": "^4.24.11",
+    "pino": "^9.9.0",
+    "pino-pretty": "^13.1.1",
     "prisma": "^6.11.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

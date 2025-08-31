@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateAaaBpi } from '@/utils/bpiCalculations';
 
 // 楽曲一覧取得
 export async function GET(request: NextRequest) {
@@ -32,7 +31,6 @@ export async function GET(request: NextRequest) {
       bpm: song.bpm,
       wr: song.wr,
       avg: song.avg,
-      aaaBpi: null, // AaaBpiテーブルは使用していないためnull
       coef: song.coef ? Number(song.coef) : null, // 譜面係数p
     }));
 
